@@ -8,7 +8,7 @@
 |---|---|
 | Phase | `01` |
 | Name | `Local Platform Foundation` |
-| Status | `ready_for_implementation` |
+| Status | `in_progress` |
 | Owner | `Project owner` |
 | Created | `2026-06-24` |
 | Last Updated | `2026-06-24` |
@@ -255,15 +255,15 @@ Create compiling Rust/TypeScript workspace foundations and a single documented e
 
 **Tasks**
 
-- [ ] Add root Cargo/pnpm workspace manifests, lockfiles, Rust toolchain, Node/pnpm version declarations, and shared scripts.
-- [ ] Scaffold the API, domain, importer, and Next.js packages without domain or ingestion behavior.
-- [ ] Expand `.gitignore`, `.dockerignore`, and `.env.example` for generated output, local environments, ports, database configuration, origins, and optional MLIT access.
-- [ ] Add root and package-level check/test scripts used identically by CI.
+- [x] Add root Cargo/pnpm workspace manifests, lockfiles, Rust toolchain, Node/pnpm version declarations, and shared scripts.
+- [x] Scaffold the API, domain, importer, and Next.js packages without domain or ingestion behavior.
+- [x] Expand `.gitignore`, `.dockerignore`, and `.env.example` for generated output, local environments, ports, database configuration, origins, and optional MLIT access.
+- [x] Add root and package-level check/test scripts used identically by CI.
 
 **Expected Evidence**
 
-- [ ] Rust workspace formatting, lint, and tests pass in the pinned toolchain container.
-- [ ] pnpm install, lint, type check, and initial tests pass from a clean lockfile install.
+- [x] Rust workspace formatting, lint, and tests pass in the pinned Rust 1.96.0 container.
+- [x] pnpm frozen-lockfile install, lint, type check, initial test, and Next.js production build pass.
 
 ### Slice 2 — PostGIS, Migrations, and Compose Lifecycle
 

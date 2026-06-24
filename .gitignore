@@ -1,4 +1,31 @@
-# Local environment files
+# Local environment files and secrets
 .env
 .env.*
 !.env.example
+
+# Operating-system and editor state
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Logs and temporary output
+*.log
+*.tmp
+
+# Rust build output
+target/
+
+# Node.js and pnpm output
+node_modules/
+.pnpm-store/
+.next/
+next-env.d.ts
+coverage/
+dist/
+*.tsbuildinfo
+
+# Tool caches
+.eslintcache
+.turbo/
+.vite/

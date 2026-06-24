@@ -8,12 +8,12 @@
 |---|---|
 | Phase | `01` |
 | Name | `Local Platform Foundation` |
-| UAT Status | `not_started` |
+| UAT Status | `in_progress` |
 | Environment | `clean local clone with Docker Compose` |
-| Tester | `TBD` |
-| Started | `not_started` |
+| Tester | `Codex` |
+| Started | `2026-06-24` |
 | Completed | `not_completed` |
-| Build / Commit | `TBD` |
+| Build / Commit | `working tree based on 169f517` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related Status | `PHASE-STATUS.md` |
 
@@ -323,13 +323,23 @@ Confirm that the local environment contract is complete and does not leak creden
 
 **Actual Result**
 
-Not run.
+Partially validated for Slice 1:
 
-**Status:** `not_run`
+- `.env.example` defines 12 unique variables covering Postgres, API, web/browser, logging, and optional MLIT access.
+- Core variables have explicit development-only defaults; `MLIT_REINFOLIB_API_KEY` remains empty.
+- `.env`/`.env.*`, Node modules, Next output, Rust targets, coverage, logs, and temporary files are ignored; `.env.example` remains trackable.
+- Repository scanning found no populated `MLIT_REINFOLIB_API_KEY` assignment.
+- Compose/application configuration, built images, runtime logs, and the optional MLIT script do not exist yet, so the full case cannot pass.
+
+**Status:** `in_progress`
 
 **Evidence**
 
-Capture documentation/config audit and secret-scan output without displaying any secret.
+```text
+awk environment-key audit: 12 unique keys, no duplicates
+git check-ignore: .env, apps/web/.next, apps/web/node_modules, target/debug are ignored
+secret assignment scan: no populated MLIT_REINFOLIB_API_KEY found
+```
 
 ### UAT-08 — CI and New-Developer Documentation Path
 
@@ -360,13 +370,24 @@ Verify that the committed workflow, not local incidental state, satisfies the ph
 
 **Actual Result**
 
-Not run.
+Partially validated for Slice 1:
 
-**Status:** `not_run`
+- `pnpm install --frozen-lockfile` completed from the generated project lockfile using Node `v24.2.0` and pnpm `10.12.1`.
+- `pnpm check:web` passed ESLint, Next route type generation, strict TypeScript, and Vitest (`1` file / `1` test).
+- Next.js `16.2.9` production build compiled and prerendered `/` plus `/_not-found`.
+- `rust:1.96.0-bookworm bash scripts/check-rust.sh` passed rustfmt, Clippy with warnings denied, all three workspace crates, and domain doctests.
+- GitHub Actions, Compose smoke validation, README, architecture, and local-development documentation remain unimplemented, so the full case cannot pass.
+
+**Status:** `in_progress`
 
 **Evidence**
 
-Link the CI run and capture clean-clone command output.
+```text
+scripts/check-rust.sh — pass in rust:1.96.0-bookworm
+scripts/check-web.sh — pass
+pnpm --filter @urbanlens/web build — pass
+Cargo.lock and pnpm-lock.yaml — generated and present
+```
 
 ---
 
@@ -444,7 +465,7 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 | EV-03 | API output | Health, readiness, GraphQL, request ID, and CORS results | TBD |
 | EV-04 | Screenshot | Connected `/market-map` foundation state | TBD |
 | EV-05 | Screenshot/output | Degraded and recovered frontend/API states | TBD |
-| EV-06 | Test output | Rust, frontend, database, and integration tests | TBD |
+| EV-06 | Test output | Slice 1 Rust fmt/Clippy/tests and frontend lint/typecheck/test/build pass; database/integration pending | UAT-08 actual result; rerun through `scripts/check-rust.sh` and `scripts/check-web.sh` |
 | EV-07 | CI run | Passing workflow and always-run teardown | TBD |
 | EV-08 | Documentation review | Clean-clone setup and troubleshooting verification | TBD |
 
@@ -476,7 +497,8 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 | Passed | 0 |
 | Failed | 0 |
 | Blocked | 0 |
-| Required Not Run | 8 |
+| In Progress | 2 |
+| Required Not Run | 6 |
 | Open Critical Defects | 0 |
 | Open High Defects | 0 |
 
@@ -491,7 +513,7 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 
 | Exception | Reason | Follow-Up Phase / Issue |
 |---|---|---|
-| None | UAT has not started. | — |
+| None | Pre-UAT validation is in progress; no exception has been requested or accepted. | — |
 
 ---
 

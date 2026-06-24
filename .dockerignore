@@ -1,0 +1,17 @@
+.git
+.github
+.planning
+.DS_Store
+.env
+.env.*
+!.env.example
+**/node_modules
+**/.next
+**/coverage
+**/dist
+**/*.tsbuildinfo
+**/next-env.d.ts
+.pnpm-store
+target
+*.log
+*.tmp

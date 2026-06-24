@@ -1,0 +1,19 @@
+{
+  "name": "urbanlens",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=10 <11"
+  },
+  "packageManager": "pnpm@10.12.1",
+  "scripts": {
+    "check": "bash scripts/check-all.sh",
+    "check:rust": "bash scripts/check-rust.sh",
+    "check:web": "bash scripts/check-web.sh",
+    "dev:web": "pnpm --filter @urbanlens/web dev",
+    "lint": "pnpm --filter @urbanlens/web lint",
+    "test": "pnpm --filter @urbanlens/web test --run",
+    "typecheck": "pnpm --filter @urbanlens/web typecheck"
+  }
+}

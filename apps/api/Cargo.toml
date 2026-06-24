@@ -1,0 +1,10 @@
+[package]
+name = "urbanlens-api"
+description = "UrbanLens HTTP and GraphQL API"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

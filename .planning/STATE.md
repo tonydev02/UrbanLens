@@ -10,12 +10,12 @@
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
 | Current Milestone | `MVP local platform foundation` |
 | Current Phase | `01 — Local Platform Foundation` |
-| Current Phase Status | `ready_for_implementation` |
+| Current Phase Status | `in_progress` |
 | Project Health | `green` |
 | Last Updated | `2026-06-24` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `8b66ed9` |
+| Latest Commit | `169f517` |
 
 ---
 
@@ -34,7 +34,7 @@ Build the decision-complete Phase 01 local platform foundation so one root Docke
 | Plan | `.planning/phases/01-local-platform-foundation/PHASE-PLAN.md` |
 | Status | `.planning/phases/01-local-platform-foundation/PHASE-STATUS.md` |
 | UAT | `.planning/phases/01-local-platform-foundation/PHASE-UAT.md` |
-| Phase Status | `ready_for_implementation` |
+| Phase Status | `in_progress` |
 | Phase Health | `green` |
 
 ### Why This Is the Active Phase
@@ -48,16 +48,16 @@ Phase 0 passed all eight UAT cases, and Phase 01 now has decision-complete plan/
 > **Do this first when resuming work:**
 
 ```text
-Add root Cargo/pnpm workspace manifests, pinned toolchain/version files, package/crate skeletons, and the shared safe environment contract. Then create the root/infra Compose entrypoint, PostGIS health check, and dedicated migration binary.
+Implement Slice 2: add the root Compose entrypoint and `infra/docker-compose.yml`, start `postgis/postgis:17-3.5` with a health check and named volume, then add SQLx migrations and the dedicated migration binary.
 ```
 
 ### Resume Sequence
 
 1. Read the Phase 01 plan/status and the accepted ADRs.
 2. Confirm the branch, working tree, and latest commit.
-3. Implement Slice 1: root workspaces, pinned toolchains, crate/package skeletons, lockfiles, and environment contract.
-4. Implement the root/infra Compose entrypoint, PostGIS service, migrations, and one-shot migration binary.
-5. Validate the fresh-volume migration path before beginning API or frontend behavior.
+3. Preserve the completed Slice 1 shared check/environment boundaries.
+4. Implement Slice 2: root/infra Compose entrypoint, PostGIS service, migrations, and one-shot migration binary.
+5. Validate fresh-volume and migration-rerun behavior before beginning API behavior.
 
 ---
 
@@ -67,13 +67,13 @@ Add root Cargo/pnpm workspace manifests, pinned toolchain/version files, package
 |---|---|---|---|
 | Product / Domain | Stable | Phase 00 | Workflow, claims, metrics, precision, and conceptual model complete. |
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
-| Backend API | Ready | Phase 01 | Actix/GraphQL contracts, failure behavior, logging, and tests are planned. |
+| Backend API | In Progress | Phase 01 | Rust API crate compiles; Actix/GraphQL behavior remains Slice 3. |
 | Database / PostGIS | Ready | Phase 01 | Six-table lineage schema, extensions, indexes, and migration lifecycle are planned. |
 | Ingestion Pipeline | Stable | Phase 00 | Three official fixtures and approved API access are available. |
-| Frontend Workspace | Ready | Phase 01 | App shell, empty market-map route, connectivity, and failure states are planned. |
-| Testing | Ready | Phase 01 | Eight required Phase 01 UAT cases and automated coverage are specified. |
-| Infrastructure / CI | Ready | Phase 01 | Compose lifecycle and Rust/frontend/smoke CI jobs are specified. |
-| Documentation | Ready | Phase 01 | README, architecture, local-development, and environment updates are required. |
+| Frontend Workspace | In Progress | Phase 01 | Next.js scaffold, strict TypeScript, initial test, and production build pass. |
+| Testing | In Progress | Phase 01 | Shared Rust/web checks pass; two UAT cases contain partial evidence. |
+| Infrastructure / CI | In Progress | Phase 01 | Environment/ignore boundaries exist; Compose and CI remain. |
+| Documentation | In Progress | Phase 01 | Environment contract and phase records are current; runtime docs remain. |
 
 ---
 
@@ -82,7 +82,7 @@ Add root Cargo/pnpm workspace manifests, pinned toolchain/version files, package
 | Phase | Name | Status | Health | Exit Condition |
 |---:|---|---|---|---|
 | 00 | Product and Data Discovery | Completed | Green | First source, fixtures, workflow, model, access, and ADRs passed UAT |
-| 01 | Local Platform Foundation | Ready for Implementation | Green | Web, API, and PostGIS run locally |
+| 01 | Local Platform Foundation | In Progress | Green | Web, API, and PostGIS run locally |
 | 02 | Ingestion and Canonical Data Pipeline | Not Started | Green | Official data imports safely and repeatedly |
 | 03 | Spatial Data Model and Query Engine | Not Started | Green | Viewport and area filtering work in PostGIS |
 | 04 | Analyst Workspace v0.1 | Not Started | Green | Market map works with filters and source details |
@@ -97,6 +97,7 @@ Add root Cargo/pnpm workspace manifests, pinned toolchain/version files, package
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-06-24 | Completed Slice 1: Cargo/pnpm workspaces, pinned tools, lockfiles, API/domain/importer/web scaffolds, environment contract, shared checks, and passing Rust/frontend validation. | 01 | Root manifests, `apps/`, `crates/`, `workers/importer/`, `scripts/` |
 | 2026-06-24 | Completed decision-ready Phase 01 plan, status, and UAT documents with interfaces, schema constraints, implementation slices, CI, and failure cases. | 01 | `.planning/phases/01-local-platform-foundation/` |
 | 2026-06-24 | Confirmed MLIT API approval/local ignored `.env`; passed UAT-01/UAT-08 and completed Phase 0. | 00 | `docs/data-sources.md`, Phase 00 UAT |
 | 2026-06-24 | Selected MLIT transaction-price information and completed source/access/schema/limitation documentation. | 00 | `docs/data-sources.md` |
@@ -203,11 +204,11 @@ Detailed discovery notes and progress belong in the active phase documents and `
 
 ### Last Session Summary
 
-Completed the Phase 01 planning package. The implementation is split into workspace/tooling, PostGIS/migrations, API, frontend, and CI/documentation slices. Public interfaces, six-table lineage schema, one-shot migration lifecycle, failure behavior, tests, and eight required UAT cases are decision-complete.
+Completed Phase 01 Slice 1. Rust 1.96 and Node 24/pnpm 10 are declared; Cargo/pnpm lockfiles and package scaffolds exist; the shared environment/ignore contract is explicit; pinned Rust fmt/Clippy/tests and frontend lint/typecheck/test/build pass.
 
 ### Where Work Stopped
 
-Phase 00 is closed. Phase 01 is `ready_for_implementation`; no application or infrastructure code has been added yet.
+Phase 00 is closed. Phase 01 is `in_progress`; Slice 1 is complete and Slice 2 has not started.
 
 ### First File to Read Next Time
 
@@ -218,5 +219,5 @@ Phase 00 is closed. Phase 01 is `ready_for_implementation`; no application or in
 ### First Action Next Time
 
 ```text
-Implement Phase 01 Slice 1: add root Cargo/pnpm workspaces, pinned toolchains, package/crate skeletons, lockfiles, and the safe environment contract; then begin the Compose/PostGIS/migration foundation.
+Implement Phase 01 Slice 2: add the root/infra Compose lifecycle, PostGIS service/health check, SQLx migrations, and the dedicated migration binary; then validate fresh-volume and rerun behavior.
 ```

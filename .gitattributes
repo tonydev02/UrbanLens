@@ -1,0 +1,2 @@
+# Preserve downloaded source fixture bytes exactly, including encoding and line endings.
+workers/importer/fixtures/transactions/*.csv -text

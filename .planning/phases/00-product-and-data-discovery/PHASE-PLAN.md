@@ -8,7 +8,7 @@
 |---|---|
 | Phase | `00` |
 | Name | `Product and Data Discovery` |
-| Status | `blocked` — repository work complete; API application submission unconfirmed |
+| Status | `completed` |
 | Owner | `Project owner` |
 | Created | `2026-06-24` |
 | Last Updated | `2026-06-24` |
@@ -426,22 +426,22 @@ Turn the source-grounded product constraints into reviewable architectural decis
 This phase is complete when:
 
 - [x] One source is selected, verified, and fully documented.
-- [ ] Credential/access status is clear and secrets remain outside version control.
+- [x] Credential/access status is clear and secrets remain outside version control.
 - [x] A small representative fixture exists with reproducible provenance and legal-use notes.
 - [x] The first user workflow, map behavior, geographic accuracy rules, and product claim boundary are documented.
 - [x] The first conceptual domain model and source mapping are agreed, including the absence of a durable `property`.
 - [x] All five required ADRs exist and agree with discovery evidence.
 - [x] Required artifact, integrity, terminology, and manual reviews pass.
-- [ ] All UAT cases pass or have accepted exceptions.
+- [x] All UAT cases pass or have accepted exceptions.
 - [x] No critical or high-severity product/data defects remain open.
-- [ ] `PHASE-STATUS.md` is updated to `completed` or `completed_with_exceptions`.
-- [ ] `.planning/STATE.md` points to the next active phase.
+- [x] `PHASE-STATUS.md` is updated to `completed` or `completed_with_exceptions`.
+- [x] `.planning/STATE.md` points to the next active phase.
 
 ---
 
 ## 11. Handoff Notes
 
-The repository-controlled handoff is complete. Final phase closure awaits user confirmation that the MLIT API application was submitted.
+Phase 0 is complete. The user confirmed MLIT API approval and local key configuration on `2026-06-24`; no key material is stored in the repository.
 
 ### What Is Now Available
 
@@ -450,6 +450,7 @@ The repository-controlled handoff is complete. Final phase closure awaits user c
 - The product brief defines station-context aggregates, type-faceted metrics, URL-backed filters, UI states, provenance, and explicit claims/non-claims.
 - The conceptual model defines lineage, exact-artifact idempotency, validation, location precision, metric eligibility, and the absence of durable property identity.
 - ADRs 001–005 are accepted.
+- MLIT API access is approved and configured locally through the ignored `.env` file.
 
 ### Important Constraints
 

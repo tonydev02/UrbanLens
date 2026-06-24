@@ -31,12 +31,12 @@ Only `不動産取引価格情報` is selected. `成約価格情報` is excluded
 | Interface | Authentication | Phase 0 Status | Intended Use |
 |---|---|---|---|
 | Web CSV download | None through the official web workflow | Verified; fixtures retrieved | Source-shaped parser fixtures and manual recovery path |
-| XIT001 | MLIT-issued API key in `Ocp-Apim-Subscription-Key` | `action_required` — user must submit the personal application; approval may remain pending | Deterministic record retrieval by year/quarter and area/city/station |
-| XPT001 | Same MLIT-issued API key | `action_required` — same application | GeoJSON/PBF nearest-station context for the first map |
+| XIT001 | MLIT-issued API key in `Ocp-Apim-Subscription-Key` | `approved` — user confirmed approval and local `.env` configuration on `2026-06-24` | Deterministic record retrieval by year/quarter and area/city/station |
+| XPT001 | Same MLIT-issued API key | `approved` — same locally configured key | GeoJSON/PBF nearest-station context for the first map |
 
-The application is at <https://www.reinfolib.mlit.go.jp/api/request/>. It requires user identity, agreement to the API terms, and attestations that the repository agent cannot truthfully provide for the user. The local variable name is `MLIT_REINFOLIB_API_KEY`; issued values must never enter version control or logs.
+The application is at <https://www.reinfolib.mlit.go.jp/api/request/>. The user confirmed that MLIT approved the application on `2026-06-24` and placed the key in a local `.env` file. The local variable name is `MLIT_REINFOLIB_API_KEY`; the issued value must never enter version control, documentation, chat, fixtures, or logs.
 
-Phase 0 may finish with approval pending, but not while application submission remains unconfirmed.
+The local `.env` is ignored by Git. An authenticated API smoke test remains a Phase 1 setup check because requests from the current execution environment timed out without returning a response body; this does not change the confirmed credential status.
 
 ## Source Acquisition and Disclosure Process
 

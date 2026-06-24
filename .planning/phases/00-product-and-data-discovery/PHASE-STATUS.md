@@ -8,12 +8,12 @@
 |---|---|
 | Phase | `00` |
 | Name | `Product and Data Discovery` |
-| Overall Status | `blocked` |
-| Health | `red` |
+| Overall Status | `completed` |
+| Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-24` |
 | Last Updated | `2026-06-24 07:24 +07:00` |
-| Target Completion | `Immediately after API application submission is confirmed` |
+| Target Completion | `2026-06-24` |
 | Current Branch | `main` |
 | Current Commit | `N/A — repository has no initial commit` |
 | Related Plan | `PHASE-PLAN.md` |
@@ -21,22 +21,22 @@
 
 ## 1. Current Objective
 
-Close the only remaining external prerequisite: submit the MLIT API application. All repository-controlled Phase 0 source, fixture, workflow, domain, ADR, and validation work is complete.
+Hand off the completed discovery baseline to Phase 01 — Local Platform Foundation.
 
 ## 2. Current Focus
 
-The selected source is verified, official fixtures are committed, documentation and ADRs are complete, and six of eight UAT scenarios pass. UAT-01 and UAT-08 are blocked because API application submission requires the user’s identity, agreement, and attestations and has not been confirmed.
+The selected source is verified, official fixtures are committed, documentation and ADRs are complete, all eight UAT scenarios pass, and the user confirmed MLIT API approval plus local ignored `.env` configuration.
 
 ## 3. Definition of Done
 
-The phase is done when the user confirms API application submission, the source register records `requested—approval pending`, the two blocked UAT cases pass, and project state activates Phase 01.
+All Phase 0 exit criteria are satisfied. Phase 01 must preserve the documented source, lineage, metric, and location-precision boundaries.
 
 ## 4. Progress Snapshot
 
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Plan and traceable acceptance protocol complete. |
-| Source / Access Discovery | Blocked | 90% | Source/CSV/API verified; user application submission pending. |
+| Source / Access Discovery | Done | 100% | Source/CSV/API verified; API access approved and configured locally. |
 | Product / Workflow | Done | 100% | Workflow, metrics, states, map, and claim boundary documented. |
 | Design / Architecture | Done | 100% | Conceptual model and ADRs 001–005 complete. |
 | Database | Done | 100% | Conceptual model complete; physical migration correctly deferred. |
@@ -44,7 +44,7 @@ The phase is done when the user confirms API application submission, the source 
 | Frontend | Done | 100% | Product/map behavior specified; implementation correctly deferred. |
 | Tests | Done | 100% | Fixture parse/assertions, checksums, structure, placeholder, and secret scans pass. |
 | Documentation | Done | 100% | All required deliverables exist. |
-| UAT | Blocked | 75% | 6 passed, 2 blocked, 0 failed. |
+| UAT | Done | 100% | 8 passed, 0 blocked, 0 failed. |
 
 ## 5. Completed Outcomes
 
@@ -56,12 +56,13 @@ The phase is done when the user confirms API application submission, the source 
 | 2026-06-24 | Defined lineage, idempotency, validation, metric eligibility, and location precision without durable property identity. | `docs/data-model.md` |
 | 2026-06-24 | Accepted PostGIS, GraphQL, raw-payload, location-precision, and Rust/Actix decisions. | `docs/adr/001-*.md` through `005-*.md` |
 | 2026-06-24 | Passed all repository-controlled validation and six UAT cases. | `PHASE-UAT.md` |
+| 2026-06-24 | Confirmed MLIT API approval/local configuration and passed the two remaining UAT cases. | `docs/data-sources.md`, `PHASE-UAT.md` |
 
 ## 6. Exact Next Actions
 
-1. [ ] **User action:** Submit <https://www.reinfolib.mlit.go.jp/api/request/> and provide the submission date; do not share the issued key in chat or commit it.
-2. [ ] Change API status in `docs/data-sources.md` from `action_required` to `requested—approval pending`.
-3. [ ] Mark UAT-01 and UAT-08 passed, then set Phase 0 to `completed` and activate Phase 01.
+1. [x] MLIT API access is approved and configured locally without committing the key.
+2. [x] UAT-01 and UAT-08 pass; Phase 0 is complete.
+3. [ ] **Next phase action:** Create the Phase 01 plan from the template and include a bounded authenticated API smoke test in local setup.
 
 ## 7. Blocker and Risks
 
@@ -69,7 +70,7 @@ The phase is done when the user confirms API application submission, the source 
 
 | ID | Blocker | Impact | Owner | Since | Resolution |
 |---|---|---|---|---|---|
-| BLK-01 | MLIT API application submission is unconfirmed. | Prevents required access-status gate and final UAT pass. | User | 2026-06-24 | Submit application and confirm date; approval may remain pending. |
+| — | No open blocker. | — | — | — | — |
 
 ### Residual Risks
 
@@ -109,11 +110,11 @@ The phase is done when the user confirms API application submission, the source 
 
 | Field | Value |
 |---|---|
-| UAT Readiness | `blocked_on_external_prerequisite` |
-| UAT Result | `blocked` |
-| Passed / Blocked / Failed | `6 / 2 / 0` |
+| UAT Readiness | `complete` |
+| UAT Result | `passed` |
+| Passed / Blocked / Failed | `8 / 0 / 0` |
 | Blocking Defects | `0` |
-| External Blockers | `1` |
+| External Blockers | `0` |
 | UAT File | `PHASE-UAT.md` |
 
 ## 10. Resume Context
@@ -124,7 +125,7 @@ The phase is done when the user confirms API application submission, the source 
 docs/data-sources.md — selected source, schema, access status, fixture profile
 docs/product-brief.md — first analyst workflow and claim boundary
 docs/data-model.md — conceptual lineage, idempotency, precision, metrics
-.planning/phases/00-product-and-data-discovery/PHASE-UAT.md — exact blocked acceptance cases
+.planning/phases/00-product-and-data-discovery/PHASE-UAT.md — completed acceptance evidence
 ```
 
 ### Recommended Resume Command
@@ -135,12 +136,12 @@ sed -n '1,220p' .planning/phases/00-product-and-data-discovery/PHASE-STATUS.md
 
 ### Exact Next Technical Step
 
-After the user confirms the MLIT application submission date, update one access-status row in `docs/data-sources.md`, rerun UAT-01/UAT-08, and close Phase 0 without waiting for key approval.
+Create the Phase 01 planning documents and make an authenticated XIT002/XIT001 request part of the local-platform smoke test without exposing the key.
 
 ## 11. Exit Checklist
 
 - [x] One official historical transaction-price source is selected and documented.
-- [ ] Required API access is requested without committing secrets.
+- [x] Required API access is approved/configured without committing secrets.
 - [x] Documented representative fixtures exist.
 - [x] First analyst workflow and product claim boundary are complete.
 - [x] Geographic accuracy and all location-precision rules are documented.
@@ -148,11 +149,11 @@ After the user confirms the MLIT application submission date, update one access-
 - [x] ADRs 001–005 exist and agree with discovery evidence.
 - [x] Required repository validation checks pass.
 - [x] All UAT cases were executed.
-- [ ] UAT result is `passed` or `passed_with_accepted_exceptions`.
+- [x] UAT result is `passed` or `passed_with_accepted_exceptions`.
 - [x] No critical or high product/data defects remain open.
 - [x] Handoff notes are completed in `PHASE-PLAN.md`.
-- [ ] `.planning/STATE.md` is updated to the next active phase.
-- [ ] Overall status is `completed` or `completed_with_exceptions`.
+- [x] `.planning/STATE.md` is updated to the next active phase.
+- [x] Overall status is `completed` or `completed_with_exceptions`.
 
 ## 12. Update Log
 
@@ -160,3 +161,4 @@ After the user confirms the MLIT application submission date, update one access-
 |---|---|---|
 | 2026-06-24 06:50 +07:00 | `ready_for_implementation` | Planning documents created. |
 | 2026-06-24 07:24 +07:00 | `blocked` | Repository work and validation complete; user API application submission is the only remaining exit prerequisite. |
+| 2026-06-24 | `completed` | User confirmed MLIT API approval/local `.env`; all eight UAT cases pass and Phase 01 is activated. |

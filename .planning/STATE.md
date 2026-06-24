@@ -8,20 +8,20 @@
 |---|---|
 | Project | `UrbanLens` |
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
-| Current Milestone | `MVP discovery baseline` |
-| Current Phase | `00 — Product and Data Discovery` |
-| Current Phase Status | `blocked` |
-| Project Health | `red` |
-| Last Updated | `2026-06-24 07:24 +07:00` |
+| Current Milestone | `MVP local platform foundation` |
+| Current Phase | `01 — Local Platform Foundation` |
+| Current Phase Status | `not_started` |
+| Project Health | `green` |
+| Last Updated | `2026-06-24` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `N/A — repository has no initial commit` |
+| Latest Commit | `be6ff47` |
 
 ---
 
 ## 1. Current Objective
 
-Close Phase 0 by confirming submission of the MLIT API application. All repository-controlled discovery outputs—selected source, official fixtures, analyst workflow, claim boundary, conceptual model, ADRs, and validation—are complete.
+Plan and build the smallest local platform foundation that runs Next.js, Rust/Actix, PostgreSQL/PostGIS, and supporting health checks without violating the completed Phase 0 source, lineage, metric, or location-precision decisions.
 
 ---
 
@@ -29,17 +29,17 @@ Close Phase 0 by confirming submission of the MLIT API application. All reposito
 
 | Field | Value |
 |---|---|
-| Active Phase | `00 — Product and Data Discovery` |
-| Phase Folder | `.planning/phases/00-product-and-data-discovery/` |
-| Plan | `.planning/phases/00-product-and-data-discovery/PHASE-PLAN.md` |
-| Status | `.planning/phases/00-product-and-data-discovery/PHASE-STATUS.md` |
-| UAT | `.planning/phases/00-product-and-data-discovery/PHASE-UAT.md` |
-| Phase Status | `blocked` |
-| Phase Health | `red` |
+| Active Phase | `01 — Local Platform Foundation` |
+| Phase Folder | `.planning/phases/01-local-platform-foundation/` (to create) |
+| Plan | `.planning/phases/01-local-platform-foundation/PHASE-PLAN.md` (to create) |
+| Status | `.planning/phases/01-local-platform-foundation/PHASE-STATUS.md` (to create) |
+| UAT | `.planning/phases/01-local-platform-foundation/PHASE-UAT.md` (to create) |
+| Phase Status | `not_started` |
+| Phase Health | `green` |
 
 ### Why This Is the Active Phase
 
-Source, schema, identity, geography, legal use, fixtures, and product boundaries are resolved. The phase remains active only because required API application submission needs the user’s identity and attestations.
+Phase 0 passed all eight UAT cases. A runnable local platform is now the next dependency for implementing ingestion, spatial storage, GraphQL, and the analyst workspace.
 
 ---
 
@@ -48,16 +48,16 @@ Source, schema, identity, geography, legal use, fixtures, and product boundaries
 > **Do this first when resuming work:**
 
 ```text
-Submit the MLIT API application at https://www.reinfolib.mlit.go.jp/api/request/ and confirm the submission date; do not share the issued key.
+Create Phase 01 planning documents from the templates, including a bounded authenticated MLIT API smoke test that never prints or stores the key.
 ```
 
 ### Resume Sequence
 
-1. Read the active phase `PHASE-STATUS.md`.
-2. Confirm the branch and working tree; this repository currently has no initial commit.
-3. Confirm the user’s MLIT API application submission date.
-4. Update the access-status row and rerun UAT-01/UAT-08.
-5. Update `PHASE-STATUS.md` and this file after meaningful progress.
+1. Read the completed Phase 00 status/UAT and accepted ADRs.
+2. Confirm the branch, working tree, and latest commit.
+3. Create the Phase 01 plan, status, and UAT files from the templates.
+4. Include local API-key loading and a bounded authenticated smoke test without key disclosure.
+5. Update this file after the Phase 01 plan is decision-complete.
 
 ---
 
@@ -67,13 +67,13 @@ Submit the MLIT API application at https://www.reinfolib.mlit.go.jp/api/request/
 |---|---|---|---|
 | Product / Domain | Stable | Phase 00 | Workflow, claims, metrics, precision, and conceptual model complete. |
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
-| Backend API | Not Started | Future phase | Phase 0 documents needs but writes no API code. |
-| Database / PostGIS | Not Started | Future phase | Conceptual model only in Phase 0. |
-| Ingestion Pipeline | In Progress | Phase 00 | Three source fixtures ready; production importer remains a later phase. |
-| Frontend Workspace | Not Started | Future phase | Workflow and map semantics precede implementation. |
-| Testing | In Progress | Phase 00 | Repository checks pass; UAT blocked 6 passed / 2 blocked. |
-| Infrastructure / CI | Not Started | Future phase | Out of Phase 0 scope. |
-| Documentation | Stable | Phase 00 | Required source, product, model, ADR, fixture, and planning docs complete. |
+| Backend API | Not Started | Phase 01 | Local Actix/GraphQL service foundation is next. |
+| Database / PostGIS | Not Started | Phase 01 | Local PostgreSQL/PostGIS service and migration mechanism are next. |
+| Ingestion Pipeline | Stable | Phase 00 | Three official fixtures and approved API access are available. |
+| Frontend Workspace | Not Started | Phase 01 | Local Next.js shell is next; analyst features remain later. |
+| Testing | Stable | Phase 00 | All eight discovery UAT cases pass. |
+| Infrastructure / CI | Not Started | Phase 01 | Docker Compose and baseline checks are next. |
+| Documentation | Stable | Phase 00 | Required discovery documents are complete. |
 
 ---
 
@@ -81,7 +81,7 @@ Submit the MLIT API application at https://www.reinfolib.mlit.go.jp/api/request/
 
 | Phase | Name | Status | Health | Exit Condition |
 |---:|---|---|---|---|
-| 00 | Product and Data Discovery | Blocked | Red | User confirms API application submission; final two UAT cases pass |
+| 00 | Product and Data Discovery | Completed | Green | First source, fixtures, workflow, model, access, and ADRs passed UAT |
 | 01 | Local Platform Foundation | Not Started | Green | Web, API, and PostGIS run locally |
 | 02 | Ingestion and Canonical Data Pipeline | Not Started | Green | Official data imports safely and repeatedly |
 | 03 | Spatial Data Model and Query Engine | Not Started | Green | Viewport and area filtering work in PostGIS |
@@ -97,6 +97,7 @@ Submit the MLIT API application at https://www.reinfolib.mlit.go.jp/api/request/
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-06-24 | Confirmed MLIT API approval/local ignored `.env`; passed UAT-01/UAT-08 and completed Phase 0. | 00 | `docs/data-sources.md`, Phase 00 UAT |
 | 2026-06-24 | Selected MLIT transaction-price information and completed source/access/schema/limitation documentation. | 00 | `docs/data-sources.md` |
 | 2026-06-24 | Retrieved, profiled, and checksum-validated 666 official source observations across three Tokyo wards. | 00 | `workers/importer/fixtures/transactions/` |
 | 2026-06-24 | Completed product brief, conceptual model, and accepted ADRs 001–005. | 00 | `docs/` |
@@ -112,16 +113,15 @@ Submit the MLIT API application at https://www.reinfolib.mlit.go.jp/api/request/
 
 | ID | Blocker | Impact | Owner | Next Action |
 |---|---|---|---|---|
-| BLK-01 | MLIT API application submission is unconfirmed. | Blocks final access gate and UAT closure. | User | Submit application and confirm date; approval may remain pending. |
+| — | No active blocker. | — | — | — |
 
 ### Risks
 
 | ID | Risk | Likelihood | Impact | Mitigation |
 |---|---|---:|---:|---|
-| RSK-01 | Source requires credentials or delayed approval. | Medium | High | Verify and request access as the first discovery action. |
-| RSK-02 | Fixture redistribution is restricted. | Medium | Medium | Document terms and use a minimal source-shaped fixture only when permitted. |
-| RSK-03 | Source geography or identity is less precise than desired. | High | Medium | Model observations and explicit location precision; narrow map behavior. |
-| RSK-04 | Desired filters/metrics are unsupported or categorical. | Medium | High | Narrow the workflow and avoid invented conversions. |
+| RSK-01 | Authenticated API connectivity has not completed from this execution environment. | Medium | Medium | Add a bounded, secret-safe smoke test to Phase 01 local setup. |
+| RSK-02 | Source revisions can change historical query results. | Medium | Medium | Version each retrieval by query, timestamp, and artifact checksum. |
+| RSK-03 | XPT station points cannot be guessed onto CSV/XIT rows. | High | High | Treat XPT features as their own source records or keep other observations spatially unknown. |
 
 ---
 
@@ -132,9 +132,9 @@ Submit the MLIT API application at https://www.reinfolib.mlit.go.jp/api/request/
 | 2026-06-24 | Use official public datasets only. | Avoids scraping, licensing uncertainty, and unsupported claims. | `AGENTS.md` |
 | 2026-06-24 | Begin with one historical transaction-price source. | Keeps discovery, ingestion, and product claims narrow and testable. | Phase 00 plan |
 | 2026-06-24 | Use `transaction_observation`, not a durable `property`, in the initial model. | Stable identity and exact location are not established. | Phase 00 plan |
-| 2026-06-24 | Preserve explicit location precision. | Prevents approximate public geography from appearing as exact property coordinates. | Planned ADR-004 |
-| 2026-06-24 | Preserve raw source payloads and lineage. | Enables audit, reprocessing, and reproducible metrics. | Planned ADR-003 |
-| 2026-06-24 | Use GraphQL for the product API and PostGIS for spatial queries. | Supports bounded map/filter/metric/provenance workflows with database-level geography. | Planned ADR-001/002 |
+| 2026-06-24 | Preserve explicit location precision. | Prevents approximate public geography from appearing as exact property coordinates. | ADR-004 |
+| 2026-06-24 | Preserve raw source payloads and lineage. | Enables audit, reprocessing, and reproducible metrics. | ADR-003 |
+| 2026-06-24 | Use GraphQL for the product API and PostGIS for spatial queries. | Supports bounded map/filter/metric/provenance workflows with database-level geography. | ADR-001/002 |
 
 ---
 
@@ -168,14 +168,12 @@ CI: GitHub Actions
 ## 10. Resume Commands
 
 ```bash
-# Inspect the active phase and working tree
+# Inspect completed discovery and the working tree
 git status --short
 sed -n '1,240p' .planning/phases/00-product-and-data-discovery/PHASE-STATUS.md
 
-# Locate current planning and documentation artifacts
-rg --files .planning docs workers/importer/fixtures 2>/dev/null | sort
-
-# Phase 0 source/fixture validation commands are added after format selection
+# Start Phase 01 planning from the templates
+ls .planning/phases/XX-template
 ```
 
 ---
@@ -199,20 +197,20 @@ Detailed discovery notes and progress belong in the active phase documents and `
 
 ### Last Session Summary
 
-Implemented all repository-controlled Phase 0 outputs: official MLIT fixtures, source/product/model documentation, ADRs 001–005, environment placeholder, integrity checks, and UAT evidence. Six UAT cases pass; two are blocked by the unconfirmed user API application.
+Completed Phase 0. MLIT API access is approved and configured in an ignored local `.env`; all discovery artifacts and all eight UAT cases pass. The key was neither printed nor stored in repository files.
 
 ### Where Work Stopped
 
-Only MLIT API application submission remains. Approval/key receipt is not required for Phase 0; submission confirmation is.
+Phase 00 is closed. Phase 01 planning documents do not yet exist.
 
 ### First File to Read Next Time
 
 ```text
-.planning/phases/00-product-and-data-discovery/PHASE-STATUS.md
+.planning/STATE.md
 ```
 
 ### First Action Next Time
 
 ```text
-After the user confirms the MLIT application submission date, update docs/data-sources.md to requested—approval pending, rerun UAT-01/UAT-08, close Phase 0, and activate Phase 01.
+Create .planning/phases/01-local-platform-foundation/ from the template and make authenticated API connectivity a secret-safe local smoke test.
 ```

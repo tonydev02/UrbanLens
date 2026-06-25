@@ -13,7 +13,7 @@
 | Tester | `Codex` |
 | Started | `2026-06-24` |
 | Completed | `not_completed` |
-| Build / Commit | `working tree based on 169f517; Slice 2 implementation uncommitted` |
+| Build / Commit | `working tree based on 169f517; Slice 3 implementation uncommitted` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related Status | `PHASE-STATUS.md` |
 
@@ -172,25 +172,31 @@ Verify all public Phase 1 API contracts and prove GraphQL reaches PostgreSQL.
 **Steps**
 
 1. Request `GET http://localhost:8080/health`.
-2. Request `GET http://localhost:8080/readyz`.
-3. Send the documented `POST /graphql` health query.
+2. Request `GET http://localhost:8080/ready`.
+3. Send the documented `POST /graphql` connectivity query.
 4. Repeat one request with a known `x-request-id`.
 5. Test a configured web-origin preflight and an unconfigured-origin preflight.
 
 **Expected Result**
 
 - [ ] `/health` returns HTTP 200 and `{"status":"ok"}`.
-- [ ] `/readyz` returns HTTP 200 and `{"status":"ready","databaseConnected":true}`.
-- [ ] GraphQL returns `health.status = OK` and `databaseConnected = true` with no GraphQL errors.
+- [ ] `/ready` returns HTTP 200 and `{"status":"ready","database_reachable":true,"migrations_applied":true}`.
+- [ ] GraphQL returns `connectivity.status = "ready"`, `databaseReachable = true`, and `migrationsApplied = true` with no GraphQL errors.
 - [ ] Responses contain request IDs; a valid supplied request ID is preserved.
 - [ ] Structured logs contain request metadata/duration but no secret, database password, raw payload, or driver-detail leak.
 - [ ] The configured web origin is allowed and an arbitrary origin is not.
 
 **Actual Result**
 
-Not run.
+Not run as live endpoint UAT because the full stack was not started after Slice 3. Slice 3 implementation evidence exists:
 
-**Status:** `not_run`
+- API route wiring for `/health`, `/ready`, and `/graphql` is implemented.
+- `connectivity` GraphQL resolver checks database reachability and SQLx migration metadata.
+- Request ID middleware generates or preserves `x-request-id`.
+- Config parsing rejects wildcard CORS origins.
+- API image builds with `urbanlens-api`, `urbanlens-migrate`, and `urbanlens-healthcheck`.
+
+**Status:** `in_progress — Slice 3 implementation evidence passed; live endpoint UAT not run`
 
 **Evidence**
 
@@ -248,7 +254,7 @@ Prove that expected database/API failures are distinguishable and user-visible r
 **Steps**
 
 1. Stop only PostgreSQL while leaving the API process running long enough to inspect it.
-2. Request `/health`, `/readyz`, and GraphQL health.
+2. Request `/health`, `/ready`, and GraphQL `connectivity`.
 3. Inspect the web connectivity panel and retry state.
 4. Restart PostgreSQL and wait for recovery.
 5. Stop only the API and inspect the web network-error state.
@@ -257,7 +263,7 @@ Prove that expected database/API failures are distinguishable and user-visible r
 **Expected Result**
 
 - [ ] During database outage, `/health` remains 200.
-- [ ] During database outage, `/readyz` returns 503 and GraphQL reports `DEGRADED/false` without leaking driver details.
+- [ ] During database outage, `/ready` returns 503 and GraphQL reports `not_ready`/false connectivity without leaking driver details.
 - [ ] The web shows readable degraded/network-error copy and a working retry control.
 - [ ] Database/API recovery restores connected state without rebuilding images or deleting the volume.
 - [ ] Expected failures appear in structured logs with request/error kind and no secret/raw payload.
@@ -288,14 +294,14 @@ Verify that the normal developer restart path is safe and migration-aware.
 2. Stop the stack without deleting the database volume.
 3. Run `docker compose up --build -d` again.
 4. Inspect migration exit status/logs and service readiness.
-5. Recheck migration state, table counts, and GraphQL health.
+5. Recheck migration state, table counts, and GraphQL connectivity.
 
 **Expected Result**
 
 - [ ] Migration reports no unapplied work and exits zero.
 - [ ] No table, extension, migration record, or data row is duplicated.
 - [ ] All required services become healthy again.
-- [ ] GraphQL returns `OK/true` after restart.
+- [ ] GraphQL returns `ready` with database and migration booleans true after restart.
 
 **Actual Result**
 
@@ -340,7 +346,7 @@ Partially validated for Slice 1:
 - Core variables have explicit development-only defaults; `MLIT_REINFOLIB_API_KEY` remains empty.
 - `.env`/`.env.*`, Node modules, Next output, Rust targets, coverage, logs, and temporary files are ignored; `.env.example` remains trackable.
 - Repository scanning found no populated `MLIT_REINFOLIB_API_KEY` assignment.
-- Compose/application configuration, built images, runtime logs, and the optional MLIT script do not exist yet, so the full case cannot pass.
+- Compose/application configuration and the API image now exist; API CORS and request-ID config are unit-tested. Runtime logs, web configuration, built web image, and the optional MLIT script are still not fully validated, so the full case cannot pass.
 
 **Status:** `in_progress`
 
@@ -388,6 +394,7 @@ Partially validated for Slice 1:
 - Next.js `16.2.9` production build compiled and prerendered `/` plus `/_not-found`.
 - `rust:1.96.0-bookworm bash scripts/check-rust.sh` passed rustfmt, Clippy with warnings denied, all three workspace crates, and domain doctests.
 - GitHub Actions, Compose smoke validation, README, architecture, and local-development documentation remain unimplemented, so the full case cannot pass.
+- Slice 3 added `docs/local-development.md`, and `docker compose config` plus `docker compose build api` passed for the API service.
 
 **Status:** `in_progress`
 
@@ -444,7 +451,7 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 
 | UAT ID | Scenario | Expected Behavior | Actual Result | Status |
 |---|---|---|---|---|
-| UAT-E01 | PostgreSQL unavailable after startup | Liveness 200; readiness 503; GraphQL degraded; readable UI | Not run | `not_run` |
+| UAT-E01 | PostgreSQL unavailable after startup | Liveness 200; readiness 503; GraphQL `not_ready`; readable UI | Not run | `not_run` |
 | UAT-E02 | API unavailable | Frontend shows network error and retry without losing shell | Not run | `not_run` |
 | UAT-E03 | Migration fails | API/web do not become ready; failure is visible in migration logs | Not run | `not_run` |
 | UAT-E04 | Existing migrated volume | Migration exits zero without duplicate schema/data | Slice 2 migration rerun passed; full API/web restart not run | `in_progress` |
@@ -473,10 +480,10 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 |---|---|---|---|
 | EV-01 | Command output | Slice 2 Compose build/start/status and migration exit: PostGIS healthy, migrate exited 0, rerun exited 0 | Current session output; disposable project `urbanlens_slice2_test` |
 | EV-02 | Database output | Extensions, schema/indexes, empty row counts, geometry metadata, and SQLx migration ledger | Current session output; disposable project `urbanlens_slice2_test` |
-| EV-03 | API output | Health, readiness, GraphQL, request ID, and CORS results | TBD |
+| EV-03 | API output | Slice 3 implementation evidence: config/request-ID unit tests pass; `docker compose build api` copies API, migration, and healthcheck binaries. Live endpoint output remains TBD. | Current session output |
 | EV-04 | Screenshot | Connected `/market-map` foundation state | TBD |
 | EV-05 | Screenshot/output | Degraded and recovered frontend/API states | TBD |
-| EV-06 | Test output | Slice 1 Rust fmt/Clippy/tests and frontend lint/typecheck/test/build pass; database/integration pending | UAT-08 actual result; rerun through `scripts/check-rust.sh` and `scripts/check-web.sh` |
+| EV-06 | Test output | Slice 1 Rust/frontend checks pass; Slice 3 `cargo fmt --all --check`, Clippy with warnings denied, and workspace tests pass; database/live integration pending | Current session output; UAT-08 actual result |
 | EV-07 | CI run | Passing workflow and always-run teardown | TBD |
 | EV-08 | Documentation review | Clean-clone setup and troubleshooting verification | TBD |
 
@@ -486,7 +493,7 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 
 | Defect ID | Severity | Description | Reproduction Steps | Owner | Status |
 |---|---|---|---|---|---|
-| — | — | No defects recorded; UAT is in progress with Slice 1 and Slice 2 partial evidence. | — | — | — |
+| — | — | No defects recorded; UAT is in progress with Slice 1, Slice 2, and Slice 3 partial evidence. | — | — | — |
 
 ### Severity Guide
 
@@ -508,8 +515,8 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 | Passed | 0 |
 | Failed | 0 |
 | Blocked | 0 |
-| In Progress | 2 |
-| Required Not Run | 6 |
+| In Progress | 5 |
+| Required Not Run | 3 |
 | Open Critical Defects | 0 |
 | Open High Defects | 0 |
 

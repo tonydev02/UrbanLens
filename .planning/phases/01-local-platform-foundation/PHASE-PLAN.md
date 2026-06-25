@@ -11,7 +11,7 @@
 | Status | `in_progress` |
 | Owner | `Project owner` |
 | Created | `2026-06-24` |
-| Last Updated | `2026-06-24` |
+| Last Updated | `2026-06-25` |
 | Target Milestone | `MVP local platform foundation` |
 | Related ADRs | `docs/adr/001-use-postgis-for-spatial-queries.md`, `002-use-graphql-for-product-api.md`, `003-preserve-raw-source-payloads.md`, `004-model-location-precision-explicitly.md`, `005-use-rust-actix-web-for-api.md` |
 
@@ -41,7 +41,7 @@ Every later MVP capability depends on a reliable, observable, and documented run
 - [ ] Add a root Compose entrypoint backed by infrastructure definitions under `infra/`.
 - [ ] Start `web`, `api`, and `postgres` with `docker compose up --build`; run migrations through a one-shot `migrate` service.
 - [ ] Add PostGIS/pgcrypto extensions and the first lineage-compatible schema migrations.
-- [ ] Implement HTTP liveness/readiness endpoints and the GraphQL health query.
+- [x] Implement HTTP liveness/readiness endpoints and the GraphQL connectivity query.
 - [ ] Implement the first application shell, market-map placeholder, navigation, connectivity state, loading state, and error boundary.
 - [ ] Add structured request logging, request IDs, bounded local CORS, tests, CI, and local-development documentation.
 - [ ] Add an optional secret-safe MLIT API connectivity script that is not required for normal startup or CI.
@@ -49,7 +49,7 @@ Every later MVP capability depends on a reliable, observable, and documented run
 ### Out of Scope
 
 - [ ] Production ingestion, normalization, fixture loading, import scheduling, or transaction persistence.
-- [ ] Transaction, property, market-metric, provenance, or area product queries beyond the platform health query.
+- [ ] Transaction, property, market-metric, provenance, or area product queries beyond the platform connectivity query.
 - [ ] Real map rendering, MapLibre/Leaflet, geographic enrichment, boundaries, or seeded area data.
 - [ ] Authentication, authorization, Redis, saved searches, monitoring services, deployment, or production secrets management.
 - [ ] Polished visual design, responsive optimization beyond basic tolerance, or marketing content.
@@ -69,7 +69,7 @@ Every later MVP capability depends on a reliable, observable, and documented run
 | Workspace | Root Cargo workspace, pnpm workspace, lockfiles, pinned toolchains, API/domain/importer crates, and web package |
 | Infrastructure | Root Compose entrypoint, `infra/docker-compose.yml`, Dockerfiles, health checks, named Postgres volume, and `.dockerignore` files |
 | Database | SQLx migrations for extensions and six foundation tables, plus migration tests |
-| API | Actix server, SQLx pool, async-graphql schema, health/readiness routes, CORS, tracing, and request IDs |
+| API | Actix server, SQLx pool, async-graphql schema, health/readiness routes, bounded CORS, request logging, and request IDs |
 | Frontend | Next.js App Router shell, `/market-map`, root redirect, API connectivity panel, loading/error states, and component tests |
 | CI | Rust, TypeScript/frontend, and Docker Compose smoke-test jobs |
 | Documentation | `README.md`, `docs/local-development.md`, `docs/architecture.md`, and updated `.env.example` |
@@ -86,8 +86,8 @@ Every later MVP capability depends on a reliable, observable, and documented run
 | FR-01 | `docker compose up --build` starts the complete local platform from the repository root without requiring a local `.env`. | Must | Safe development defaults live in Compose; `.env` overrides them. |
 | FR-02 | PostgreSQL is healthy before migrations run; the API starts only after migrations succeed; the web starts only after API readiness. | Must | A successful one-shot `migrate` container may remain exited. |
 | FR-03 | `GET /health` reports process liveness without querying PostgreSQL. | Must | A database outage must not make liveness fail. |
-| FR-04 | `GET /readyz` runs `SELECT 1`, returns `200` while connected, and returns `503` when PostgreSQL is unavailable. | Must | Response remains structured and readable. |
-| FR-05 | `POST /graphql` exposes the typed `health` query and reports actual database connectivity. | Must | No raw or product data query is added. |
+| FR-04 | `GET /ready` runs a database and SQLx migration-ledger readiness check, returns `200` when ready, and returns `503` when PostgreSQL or successful migrations are unavailable. | Must | Response remains structured and readable. |
+| FR-05 | `POST /graphql` exposes the typed `connectivity` query and reports actual database/migration connectivity. | Must | No raw or product data query is added. |
 | FR-06 | `/` redirects to `/market-map`, which renders the analyst shell, navigation, empty map placeholder, and API/database status. | Must | The route must not imply that transaction data is loaded. |
 | FR-07 | Frontend connectivity shows explicit loading, connected, degraded/error, and retry states. | Must | The page must remain understandable if the API is unavailable. |
 | FR-08 | A bounded MLIT API smoke script can be run when `MLIT_REINFOLIB_API_KEY` exists. | Should | It must not echo the key or run in CI. |
@@ -136,7 +136,7 @@ postgres starts
 migrate starts and applies embedded SQLx migrations
   ↓ exits successfully
 api starts
-  ↓ /readyz confirms SELECT 1
+  ↓ /ready confirms database and migration readiness
 web starts
   ↓ /market-map queries POST /graphql from the browser
 ```
@@ -181,7 +181,7 @@ Constraints and indexes:
 
 ### API Foundation
 
-- Actix Web owns `/health`, `/readyz`, and `/graphql`; async-graphql owns the GraphQL schema.
+- Actix Web owns `/health`, `/ready`, and `/graphql`; async-graphql owns the GraphQL schema.
 - SQLx creates one PostgreSQL pool from `DATABASE_URL` with bounded connection/time-out settings.
 - `GET /health` always returns `200` while the process is running:
 
@@ -189,47 +189,44 @@ Constraints and indexes:
 {"status":"ok"}
 ```
 
-- `GET /readyz` executes `SELECT 1`. Success returns `200`:
+- `GET /ready` executes `SELECT 1` and verifies successful SQLx migration metadata with no failed migration rows. Success returns `200`:
 
 ```json
-{"status":"ready","databaseConnected":true}
+{"status":"ready","database_reachable":true,"migrations_applied":true}
 ```
 
 - Database failure returns `503` without leaking driver details:
 
 ```json
-{"status":"not_ready","databaseConnected":false}
+{"status":"not_ready","database_reachable":false,"migrations_applied":false}
 ```
 
 - `POST /graphql` exposes exactly:
 
 ```graphql
 type Query {
-  health: Health!
+  connectivity: Connectivity!
 }
 
-type Health {
-  status: HealthStatus!
-  databaseConnected: Boolean!
-}
-
-enum HealthStatus {
-  OK
-  DEGRADED
+type Connectivity {
+  service: String!
+  status: String!
+  databaseReachable: Boolean!
+  migrationsApplied: Boolean!
 }
 ```
 
-- The resolver runs its own bounded connectivity check. A database error returns `health { status: DEGRADED, databaseConnected: false }` rather than exposing an internal GraphQL error.
+- The resolver runs its own bounded connectivity check. A database or migration-ledger error returns `connectivity { status: "not_ready", databaseReachable: false, migrationsApplied: false }` or the nearest true/false state rather than exposing an internal GraphQL error.
 - Configure a conservative GraphQL depth/complexity limit even though the initial schema is small.
 - Accept CORS from `WEB_ORIGIN` only, include `content-type` and request-ID headers, and reject arbitrary origins.
-- Generate or preserve `x-request-id`, return it in the response, and include it in structured tracing output.
+- Generate or preserve `x-request-id`, return it in the response, and include it in request logging output.
 
 ### Frontend Foundation
 
 - Use the Next.js App Router with `/` redirecting to `/market-map`.
 - The root layout provides the UrbanLens title, one active `Market Map` navigation link, main-content landmark, and a restrained desktop-first shell.
 - `/market-map` renders an honest empty map panel stating that transaction geography arrives in a later phase.
-- A client-side status panel uses TanStack Query and `graphql-request` to run the exact GraphQL health query.
+- A client-side status panel uses TanStack Query and `graphql-request` to run the exact GraphQL connectivity query.
 - Loading shows a bounded status skeleton; success identifies API and PostgreSQL connectivity; degraded/network error shows readable copy and a retry action.
 - Add route-level `loading.tsx`, `error.tsx`, and a not-found state. Errors must not collapse the application shell.
 - Do not install a map library, draw fake points, show market metrics, or use sample transaction values.
@@ -276,7 +273,7 @@ Make one command initialize a healthy PostGIS database and apply the lineage sch
 - [x] Add root/infra Compose definitions, PostGIS service, volume, health checks, and safe defaults.
 - [x] Add extension/schema migrations and a dedicated embedded migration binary.
 - [ ] Add database tests for extensions, tables, constraints, indexes, foreign keys, and migration reruns.
-- [ ] Wire `migrate` to healthy Postgres and API startup to successful migration completion.
+- [x] Wire `migrate` to healthy Postgres and API startup to successful migration completion.
 
 **Expected Evidence**
 
@@ -288,7 +285,7 @@ Make one command initialize a healthy PostGIS database and apply the lineage sch
 - [x] Root/infra Compose definitions, PostGIS service, named volume, safe defaults, and Postgres health check were added.
 - [x] SQLx extension/schema migrations and the dedicated embedded migration binary were added.
 - [ ] Committed database integration tests for constraints/indexes/reruns remain to be added.
-- [ ] API startup cannot yet be gated on migration success because API service behavior begins in Slice 3; `migrate` is gated on healthy Postgres.
+- [x] API startup is gated on `migrate` completing successfully; `migrate` remains gated on healthy Postgres.
 - [x] Disposable Compose validation proved fresh-volume migration, migration rerun, the two SQLx migration ledger rows, both extensions, six empty foundation tables, `areas.geometry` as `MultiPolygon` SRID 4326, and the partial GiST index.
 
 ### Slice 3 — Observable Actix and GraphQL API
@@ -299,15 +296,28 @@ Expose stable health contracts proving that the API can reach PostgreSQL.
 
 **Tasks**
 
-- [ ] Build API configuration, SQLx pool, Actix routes, async-graphql schema, and graceful startup/shutdown.
-- [ ] Implement liveness, readiness, GraphQL health, bounded CORS, request IDs, and structured logs.
-- [ ] Add unit/integration coverage for success, database failure, GraphQL response shape, and CORS.
-- [ ] Add an API container health check against `/readyz`.
+- [x] Build API configuration, SQLx pool, Actix routes, async-graphql schema, and startup wiring.
+- [x] Implement liveness, readiness, GraphQL connectivity, bounded CORS, request IDs, and request logging.
+- [ ] Add integration coverage for database failure, GraphQL response shape, and CORS.
+- [x] Add an API container health check against `/ready`.
 
 **Expected Evidence**
 
-- [ ] Endpoint responses and status codes match the documented contracts.
-- [ ] Database unavailability leaves `/health` live while `/readyz` and GraphQL report degraded connectivity.
+- [x] Endpoint response contracts compile and request-ID behavior is unit-tested; full live endpoint smoke remains for UAT.
+- [ ] Database unavailability leaves `/health` live while `/ready` and GraphQL report degraded connectivity.
+
+**Slice 3 Implementation Note — 2026-06-25**
+
+- [x] Added `ApiConfig` with `API_HOST`, `API_PORT`, `DATABASE_URL`, `API_DATABASE_MAX_CONNECTIONS`, `CORS_ALLOWED_ORIGINS`, and `WEB_ORIGIN` fallback.
+- [x] Added SQLx pool creation with bounded connection count and acquire timeout.
+- [x] Added Actix `/health`, `/ready`, and `/graphql` routes.
+- [x] Added GraphQL `connectivity` response with service, status, database reachability, and migration-applied state.
+- [x] Added generated/preserved `x-request-id` response headers and request logging.
+- [x] Added bounded CORS that rejects wildcard/non-HTTP origins during config parsing.
+- [x] Added `urbanlens-healthcheck` binary and Docker image copy.
+- [x] Added Compose `api` service that depends on healthy Postgres and successful `migrate`, and uses the API healthcheck.
+- [x] Added `docs/local-development.md` for API config and health/connectivity checks.
+- [x] Verified `cargo fmt --all --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test --workspace --all-features`, `docker compose config`, and `docker compose build api`.
 
 ### Slice 4 — Analyst Shell and Connectivity States
 
@@ -354,7 +364,7 @@ Make the clean-clone workflow repeatable for developers and CI.
 
 | Area | Required Coverage |
 |---|---|
-| API response mapping | Liveness payload, readiness success/failure, GraphQL `OK`/`DEGRADED`, and safe errors |
+| API response mapping | Liveness payload, readiness success/failure, GraphQL `ready`/`not_ready`, and safe errors |
 | Request middleware | Generated/preserved request IDs and structured response metadata |
 | Frontend shell | Root navigation, empty map copy, landmarks, and active route |
 | Frontend connectivity | Loading, connected, degraded/network error, and retry behavior |
@@ -367,8 +377,8 @@ Make the clean-clone workflow repeatable for developers and CI.
 |---|---|
 | Fresh migration | Both extensions, all six tables, constraints, and indexes are created |
 | Migration rerun | SQLx reports no pending migration and schema remains unchanged |
-| API with PostgreSQL | `/readyz` is 200 and GraphQL returns `OK/true` |
-| API without PostgreSQL | `/health` remains 200, `/readyz` is 503, GraphQL returns `DEGRADED/false` |
+| API with PostgreSQL | `/ready` is 200 and GraphQL returns `connectivity.status = "ready"` with database/migration booleans true |
+| API without PostgreSQL | `/health` remains 200, `/ready` is 503, GraphQL returns `connectivity.status = "not_ready"` without leaking driver details |
 | CORS | Configured web origin is allowed; another origin is not |
 | Compose dependency chain | Migration completes before API/web become ready |
 

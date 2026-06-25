@@ -12,7 +12,7 @@
 | Current Phase | `01 — Local Platform Foundation` |
 | Current Phase Status | `in_progress` |
 | Project Health | `green` |
-| Last Updated | `2026-06-24` |
+| Last Updated | `2026-06-25` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
 | Latest Commit | `169f517` |
@@ -48,7 +48,7 @@ Phase 0 passed all eight UAT cases, and Phase 01 now has decision-complete plan/
 > **Do this first when resuming work:**
 
 ```text
-Implement Slice 2: add the root Compose entrypoint and `infra/docker-compose.yml`, start `postgis/postgis:17-3.5` with a health check and named volume, then add SQLx migrations and the dedicated migration binary.
+Begin Slice 3: add the observable Rust/Actix API foundation, SQLx pool wiring, health/readiness routes, and GraphQL connectivity contracts on top of the migrated PostGIS foundation.
 ```
 
 ### Resume Sequence
@@ -56,8 +56,8 @@ Implement Slice 2: add the root Compose entrypoint and `infra/docker-compose.yml
 1. Read the Phase 01 plan/status and the accepted ADRs.
 2. Confirm the branch, working tree, and latest commit.
 3. Preserve the completed Slice 1 shared check/environment boundaries.
-4. Implement Slice 2: root/infra Compose entrypoint, PostGIS service, migrations, and one-shot migration binary.
-5. Validate fresh-volume and migration-rerun behavior before beginning API behavior.
+4. Preserve the completed Slice 2 Compose/PostGIS/migration lifecycle and rerun evidence.
+5. Begin Slice 3 API behavior only after confirming the working tree still contains the migration foundation.
 
 ---
 
@@ -68,11 +68,11 @@ Implement Slice 2: add the root Compose entrypoint and `infra/docker-compose.yml
 | Product / Domain | Stable | Phase 00 | Workflow, claims, metrics, precision, and conceptual model complete. |
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
 | Backend API | In Progress | Phase 01 | Rust API crate compiles; Actix/GraphQL behavior remains Slice 3. |
-| Database / PostGIS | Ready | Phase 01 | Six-table lineage schema, extensions, indexes, and migration lifecycle are planned. |
+| Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
 | Ingestion Pipeline | Stable | Phase 00 | Three official fixtures and approved API access are available. |
 | Frontend Workspace | In Progress | Phase 01 | Next.js scaffold, strict TypeScript, initial test, and production build pass. |
-| Testing | In Progress | Phase 01 | Shared Rust/web checks pass; two UAT cases contain partial evidence. |
-| Infrastructure / CI | In Progress | Phase 01 | Environment/ignore boundaries exist; Compose and CI remain. |
+| Testing | In Progress | Phase 01 | Shared Rust/web checks pass; Slice 2 Compose/database smoke evidence exists; API/web/CI checks remain. |
+| Infrastructure / CI | In Progress | Phase 01 | Root/infra Compose database lifecycle exists; API/web services and CI remain. |
 | Documentation | In Progress | Phase 01 | Environment contract and phase records are current; runtime docs remain. |
 
 ---
@@ -98,6 +98,7 @@ Implement Slice 2: add the root Compose entrypoint and `infra/docker-compose.yml
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
 | 2026-06-24 | Completed Slice 1: Cargo/pnpm workspaces, pinned tools, lockfiles, API/domain/importer/web scaffolds, environment contract, shared checks, and passing Rust/frontend validation. | 01 | Root manifests, `apps/`, `crates/`, `workers/importer/`, `scripts/` |
+| 2026-06-25 | Completed Slice 2 database foundation: root Compose include, `infra/docker-compose.yml`, `postgis/postgis:17-3.5`, named volume, health-gated one-shot SQLx migration service, embedded migration binary, and lineage schema migrations. | 01 | `compose.yaml`, `infra/`, `apps/api/migrations/`, `apps/api/src/bin/migrate.rs` |
 | 2026-06-24 | Completed decision-ready Phase 01 plan, status, and UAT documents with interfaces, schema constraints, implementation slices, CI, and failure cases. | 01 | `.planning/phases/01-local-platform-foundation/` |
 | 2026-06-24 | Confirmed MLIT API approval/local ignored `.env`; passed UAT-01/UAT-08 and completed Phase 0. | 00 | `docs/data-sources.md`, Phase 00 UAT |
 | 2026-06-24 | Selected MLIT transaction-price information and completed source/access/schema/limitation documentation. | 00 | `docs/data-sources.md` |
@@ -134,6 +135,7 @@ Implement Slice 2: add the root Compose entrypoint and `infra/docker-compose.yml
 |---|---|---|---|
 | 2026-06-24 | Include `datasets` in the Phase 01 physical foundation. | Preserves exact-artifact lineage between source and import run. | Phase 01 plan, ADR-003 |
 | 2026-06-24 | Run migrations through a one-shot Compose service. | Makes migration order and failure explicit while retaining one-command startup. | Phase 01 plan |
+| 2026-06-25 | Pin the PostGIS Compose service to `linux/amd64`. | Docker reported no native arm64 manifest for `postgis/postgis:17-3.5`; the selected image still runs locally under emulation on Apple Silicon. | `infra/docker-compose.yml` |
 | 2026-06-24 | Keep authenticated MLIT connectivity optional in Phase 01. | Core startup and CI remain secret-free and independent of external availability. | Phase 01 plan |
 | 2026-06-24 | Use official public datasets only. | Avoids scraping, licensing uncertainty, and unsupported claims. | `AGENTS.md` |
 | 2026-06-24 | Begin with one historical transaction-price source. | Keeps discovery, ingestion, and product claims narrow and testable. | Phase 00 plan |
@@ -204,11 +206,11 @@ Detailed discovery notes and progress belong in the active phase documents and `
 
 ### Last Session Summary
 
-Completed Phase 01 Slice 1. Rust 1.96 and Node 24/pnpm 10 are declared; Cargo/pnpm lockfiles and package scaffolds exist; the shared environment/ignore contract is explicit; pinned Rust fmt/Clippy/tests and frontend lint/typecheck/test/build pass.
+Completed Phase 01 Slice 2. Root Compose delegates to `infra/docker-compose.yml`; PostGIS 17-3.5 runs with a named volume and health check; the `migrate` service waits for healthy Postgres and runs the embedded SQLx migrations; the schema creates PostGIS/pgcrypto plus the six empty lineage foundation tables.
 
 ### Where Work Stopped
 
-Phase 00 is closed. Phase 01 is `in_progress`; Slice 1 is complete and Slice 2 has not started.
+Phase 00 is closed. Phase 01 is `in_progress`; Slices 1 and 2 are complete at implementation level. API/web Compose services, health/readiness routes, GraphQL connectivity, and browser-visible `/market-map` proof remain for Slices 3 and 4.
 
 ### First File to Read Next Time
 
@@ -219,5 +221,5 @@ Phase 00 is closed. Phase 01 is `in_progress`; Slice 1 is complete and Slice 2 h
 ### First Action Next Time
 
 ```text
-Implement Phase 01 Slice 2: add the root/infra Compose lifecycle, PostGIS service/health check, SQLx migrations, and the dedicated migration binary; then validate fresh-volume and rerun behavior.
+Begin Phase 01 Slice 3: implement the observable Actix/GraphQL API with SQLx pool configuration, `/health`, `/readyz`, GraphQL database connectivity, and API container readiness after successful migrations.
 ```

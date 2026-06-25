@@ -273,15 +273,23 @@ Make one command initialize a healthy PostGIS database and apply the lineage sch
 
 **Tasks**
 
-- [ ] Add root/infra Compose definitions, PostGIS service, volume, health checks, and safe defaults.
-- [ ] Add extension/schema migrations and a dedicated embedded migration binary.
+- [x] Add root/infra Compose definitions, PostGIS service, volume, health checks, and safe defaults.
+- [x] Add extension/schema migrations and a dedicated embedded migration binary.
 - [ ] Add database tests for extensions, tables, constraints, indexes, foreign keys, and migration reruns.
 - [ ] Wire `migrate` to healthy Postgres and API startup to successful migration completion.
 
 **Expected Evidence**
 
-- [ ] Fresh and existing volumes both reach a migrated state without manual intervention.
-- [ ] Schema inspection proves six empty tables, both extensions, and the area spatial index exist.
+- [x] Fresh and existing volumes both reach a migrated state without manual intervention.
+- [x] Schema inspection proves six empty tables, both extensions, and the area spatial index exist.
+
+**Slice 2 Implementation Note — 2026-06-25**
+
+- [x] Root/infra Compose definitions, PostGIS service, named volume, safe defaults, and Postgres health check were added.
+- [x] SQLx extension/schema migrations and the dedicated embedded migration binary were added.
+- [ ] Committed database integration tests for constraints/indexes/reruns remain to be added.
+- [ ] API startup cannot yet be gated on migration success because API service behavior begins in Slice 3; `migrate` is gated on healthy Postgres.
+- [x] Disposable Compose validation proved fresh-volume migration, migration rerun, the two SQLx migration ledger rows, both extensions, six empty foundation tables, `areas.geometry` as `MultiPolygon` SRID 4326, and the partial GiST index.
 
 ### Slice 3 — Observable Actix and GraphQL API
 

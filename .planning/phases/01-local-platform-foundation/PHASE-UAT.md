@@ -13,7 +13,7 @@
 | Tester | `Codex` |
 | Started | `2026-06-24` |
 | Completed | `not_completed` |
-| Build / Commit | `working tree based on 169f517` |
+| Build / Commit | `working tree based on 169f517; Slice 2 implementation uncommitted` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related Status | `PHASE-STATUS.md` |
 
@@ -100,7 +100,7 @@ Prove that the primary Phase 1 deliverable works without undocumented preparatio
 
 **Actual Result**
 
-Not run.
+Full UAT-01 was not run because API and web Compose services are not implemented until Slices 3 and 4. Slice 2 subset was run in disposable project `urbanlens_slice2_test` with `POSTGRES_PORT=55432`: Postgres started, became healthy, and the `migrate` service started only after the Postgres health gate.
 
 **Status:** `not_run`
 
@@ -140,9 +140,20 @@ Prove that migrations create the correct empty physical foundation without seed 
 
 **Actual Result**
 
-Not run.
+Slice 2 database scope passed on 2026-06-25 in disposable Compose project `urbanlens_slice2_test`.
 
-**Status:** `not_run`
+Verified:
+
+- `postgis` and `pgcrypto` extensions exist.
+- `data_sources`, `datasets`, `import_runs`, `raw_records`, `validation_issues`, and `areas` exist and are empty.
+- `areas.geometry` is nullable `MULTIPOLYGON` with SRID 4326.
+- `areas_geometry_gix` exists as a partial GiST index where `geometry IS NOT NULL`.
+- No seeded source, area, property, transaction observation, station, or metric rows were created.
+- SQLx migration ledger contains exactly two successful migrations: `202606250001 enable postgis pgcrypto` and `202606250002 create lineage foundation`.
+
+Committed migration integration tests for all constraints/FKs remain pending.
+
+**Status:** `in_progress — Slice 2 database scope passed`
 
 **Evidence**
 
@@ -288,9 +299,9 @@ Verify that the normal developer restart path is safe and migration-aware.
 
 **Actual Result**
 
-Not run.
+Slice 2 migration rerun scope passed on 2026-06-25: rerunning `docker compose -p urbanlens_slice2_test up --force-recreate --no-deps migrate` against the existing disposable volume exited with code 0, kept exactly two successful SQLx migration rows, and did not duplicate schema/data. Full UAT-06 remains incomplete because API/web health and GraphQL restart behavior are later-slice work.
 
-**Status:** `not_run`
+**Status:** `in_progress — migration rerun scope passed`
 
 **Evidence**
 
@@ -436,7 +447,7 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 | UAT-E01 | PostgreSQL unavailable after startup | Liveness 200; readiness 503; GraphQL degraded; readable UI | Not run | `not_run` |
 | UAT-E02 | API unavailable | Frontend shows network error and retry without losing shell | Not run | `not_run` |
 | UAT-E03 | Migration fails | API/web do not become ready; failure is visible in migration logs | Not run | `not_run` |
-| UAT-E04 | Existing migrated volume | Migration exits zero without duplicate schema/data | Not run | `not_run` |
+| UAT-E04 | Existing migrated volume | Migration exits zero without duplicate schema/data | Slice 2 migration rerun passed; full API/web restart not run | `in_progress` |
 | UAT-E05 | Disallowed browser origin | CORS headers do not grant access | Not run | `not_run` |
 | UAT-E06 | Optional MLIT key absent | Diagnostic exits clearly without exposing values | Not run | `not_run` |
 
@@ -446,13 +457,13 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 
 | Check | Expected Result | Actual Result | Status |
 |---|---|---|---|
-| Source lineage | Physical source → dataset → import-run → raw-record FK path exists | Not run | `not_run` |
-| Artifact identity | Dataset captures retrieval/artifact checksum metadata | Not run | `not_run` |
-| Record identity | Dataset + source position is unique; equal hashes at distinct positions are allowed | Not run | `not_run` |
-| Validation visibility | Validation issues link to runs/optional raw records with warning/rejection severity | Not run | `not_run` |
-| Location precision | No observation geometry or exact property location is introduced | Not run | `not_run` |
-| Area spatial shape | Nullable MultiPolygon 4326 column and GiST index exist without seeded boundaries | Not run | `not_run` |
-| Metric reproducibility | No metric table/result is introduced prematurely | Not run | `not_run` |
+| Source lineage | Physical source → dataset → import-run → raw-record FK path exists | Tables and FK path created by migration; full constraint insertion tests pending | `in_progress` |
+| Artifact identity | Dataset captures retrieval/artifact checksum metadata | `datasets` table includes retrieval method/query, source version/time, artifact SHA-256, format, and record count fields | `pass` |
+| Record identity | Dataset + source position is unique; equal hashes at distinct positions are allowed | Unique `(dataset_id, source_position)` exists; payload hash is indexed but not unique | `pass` |
+| Validation visibility | Validation issues link to runs/optional raw records with warning/rejection severity | `validation_issues` table and warning/rejection severity check exist; insertion tests pending | `in_progress` |
+| Location precision | No observation geometry or exact property location is introduced | No property, transaction observation, station, metric, or seeded observation geometry tables/rows introduced | `pass` |
+| Area spatial shape | Nullable MultiPolygon 4326 column and GiST index exist without seeded boundaries | Verified via `geometry_columns` and `pg_indexes`; `areas` row count is 0 | `pass` |
+| Metric reproducibility | No metric table/result is introduced prematurely | No metric table/result introduced in Slice 2 migration | `pass` |
 
 ---
 
@@ -460,8 +471,8 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 
 | Evidence ID | Type | Description | Location |
 |---|---|---|---|
-| EV-01 | Command output | Clean-clone Compose build/start/status and migration exit | TBD |
-| EV-02 | Database output | Extensions, schema constraints/indexes, and empty row counts | TBD |
+| EV-01 | Command output | Slice 2 Compose build/start/status and migration exit: PostGIS healthy, migrate exited 0, rerun exited 0 | Current session output; disposable project `urbanlens_slice2_test` |
+| EV-02 | Database output | Extensions, schema/indexes, empty row counts, geometry metadata, and SQLx migration ledger | Current session output; disposable project `urbanlens_slice2_test` |
 | EV-03 | API output | Health, readiness, GraphQL, request ID, and CORS results | TBD |
 | EV-04 | Screenshot | Connected `/market-map` foundation state | TBD |
 | EV-05 | Screenshot/output | Degraded and recovered frontend/API states | TBD |
@@ -475,7 +486,7 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 
 | Defect ID | Severity | Description | Reproduction Steps | Owner | Status |
 |---|---|---|---|---|---|
-| — | — | No defects recorded; UAT has not started. | — | — | — |
+| — | — | No defects recorded; UAT is in progress with Slice 1 and Slice 2 partial evidence. | — | — | — |
 
 ### Severity Guide
 

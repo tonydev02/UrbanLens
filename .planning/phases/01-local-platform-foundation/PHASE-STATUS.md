@@ -12,7 +12,7 @@
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-24` |
-| Last Updated | `2026-06-24 18:27 +07:00` |
+| Last Updated | `2026-06-25 14:05 +07:00` |
 | Target Completion | `TBD` |
 | Current Branch | `main` |
 | Current Commit | `169f517` |
@@ -25,7 +25,7 @@ Build a clean-clone local platform in which one root Docker Compose command star
 
 ## 2. Current Focus
 
-Slice 1 is complete and validated. Current focus moves to Slice 2: the root/infra Compose lifecycle, PostGIS service, SQLx migrations, and dedicated migration binary.
+Slices 1 and 2 are complete at implementation level. Current focus moves to Slice 3: observable Actix/GraphQL API behavior, SQLx pool wiring, health/readiness contracts, and database connectivity.
 
 ## 3. Definition of Done
 
@@ -38,15 +38,15 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Plan, decisions, interfaces, schema foundation, and UAT protocol are complete. |
-| Design / Architecture | In Progress | 20% | Workspace/package boundaries and environment contract are implemented. |
-| Backend | In Progress | 10% | API crate compiles; Actix/GraphQL behavior remains Slice 3. |
-| Database | Not Started | 0% | Six tables, extensions, and migration lifecycle are specified. |
+| Design / Architecture | In Progress | 35% | Workspace/package boundaries, environment contract, and migration lifecycle are implemented. |
+| Backend | In Progress | 20% | API crate compiles and owns the migration binary; Actix/GraphQL behavior remains Slice 3. |
+| Database | In Progress | 70% | PostGIS service, extensions, six foundation tables, constraints, indexes, and SQLx rerun lifecycle are implemented and smoke-validated. |
 | Worker / Ingestion | In Progress | 25% | Compile-only importer crate exists; ingestion remains intentionally absent. |
 | Frontend | In Progress | 20% | Next.js 16 scaffold, strict TypeScript, CSS, and one foundation test pass. |
-| Infrastructure | In Progress | 10% | Ignore rules and environment contract exist; Compose is next. |
-| Tests | In Progress | 20% | Shared Rust/web checks pass; database/API/Compose coverage remains. |
+| Infrastructure | In Progress | 35% | Root/infra Compose database lifecycle exists; API/web services and CI smoke remain. |
+| Tests | In Progress | 35% | Shared Rust/web checks pass; Slice 2 Compose/database smoke evidence exists; committed migration integration tests, API, and CI coverage remain. |
 | Documentation | In Progress | 20% | Environment contract and planning records are current; runtime docs remain. |
-| UAT | In Progress | 10% | UAT-07 and UAT-08 have partial Slice 1 evidence; neither is complete. |
+| UAT | In Progress | 25% | Slice 1 evidence and Slice 2 database/migration evidence are recorded; full API/web UAT remains. |
 
 ---
 
@@ -58,6 +58,7 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | 2026-06-24 | Defined traceable UAT for clean-clone startup, migrations, API/GraphQL, frontend states, dependency failure, restart, and CI. | `PHASE-UAT.md` |
 | 2026-06-24 | Preserved the accepted dataset-artifact lineage by including `datasets` in the physical schema plan. | `PHASE-PLAN.md`, `docs/data-model.md` |
 | 2026-06-24 | Completed Slice 1 with Cargo/pnpm workspaces, pinned toolchains, lockfiles, package scaffolds, environment/ignore contracts, shared checks, and a tested Next.js foundation. | `Cargo.toml`, `package.json`, `.env.example`, `apps/`, `crates/`, `workers/importer/`, `scripts/` |
+| 2026-06-25 | Completed Slice 2 with root Compose include, `infra/docker-compose.yml`, PostGIS 17-3.5 service, named volume, health-gated SQLx migration service, embedded migration binary, extension migration, and six-table lineage foundation migration. | `compose.yaml`, `infra/`, `apps/api/migrations/`, `apps/api/src/bin/migrate.rs` |
 
 ---
 
@@ -66,17 +67,18 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Item | Current State | Next Step |
 |---|---|---|
 | Slice 1 workspace foundation | Complete | Preserve the shared check scripts as the CI command boundary. |
-| Compose/database foundation | Ready to start | Add root/infra Compose definitions, PostGIS health check, migrations, and migration binary. |
-| API/frontend foundation | Planned | Begin only after workspace and database lifecycle compile and start. |
+| Compose/database foundation | Complete | Preserve the root/infra Compose and migration lifecycle while later services are added. |
+| API/frontend foundation | Planned | Begin Slice 3 API behavior now that workspace and database lifecycle compile and start. |
 
 ---
 
 ## 7. Exact Next Actions
 
 1. [x] Add root Cargo/pnpm workspace manifests, `rust-toolchain.toml`, package/crate skeletons, lockfiles, shared checks, and the environment contract.
-2. [ ] **Next immediate action:** Add the root Compose entrypoint and `infra/docker-compose.yml` with the PostGIS service, volume, safe defaults, and health check.
-3. [ ] Add extension/schema migrations and the dedicated embedded migration binary before implementing API routes.
-4. [ ] Verify the fresh-volume and migration-rerun paths before proceeding to API behavior.
+2. [x] Add the root Compose entrypoint and `infra/docker-compose.yml` with the PostGIS service, volume, safe defaults, and health check.
+3. [x] Add extension/schema migrations and the dedicated embedded migration binary before implementing API routes.
+4. [x] Verify the fresh-volume and migration-rerun paths before proceeding to API behavior.
+5. [ ] **Next immediate action:** Implement Slice 3 API configuration, SQLx pool wiring, Actix health/readiness routes, and GraphQL database connectivity.
 
 ---
 
@@ -93,8 +95,8 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | ID | Risk | Likelihood | Impact | Mitigation | Status |
 |---|---|---:|---:|---|---|
 | RSK-01 | Browser and container API URLs/origins diverge. | Medium | High | Define separate explicit URLs/origin variables and test browser connectivity. | Open |
-| RSK-02 | Compose startup races migrations or readiness. | Medium | High | Use health/service-completion dependencies and smoke-test ordering. | Open |
-| RSK-03 | Foundational schema weakens exact-artifact lineage. | Low | High | Enforce dataset-position identity and consistent dataset/import-run references. | Open |
+| RSK-02 | Compose startup races migrations or readiness. | Medium | High | Postgres health gates the one-shot migration service; API/web health gates still need Slice 3/4 implementation. | Partially mitigated |
+| RSK-03 | Foundational schema weakens exact-artifact lineage. | Low | High | Enforced dataset-position identity and consistent dataset/import-run references in migration; committed constraint tests still remain. | Partially mitigated |
 | RSK-04 | Host Cargo is unavailable. | High | Low | Pinned Rust 1.96 container runs the authoritative shared check successfully. | Mitigated |
 | RSK-05 | Optional MLIT diagnostic exposes the key. | Low | High | No shell tracing/header output, no CI credential, and output disclosure test. | Open |
 
@@ -105,7 +107,7 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Docker Compose | Available locally (`v5.0.2`) | Slice 2 and UAT | Validate minimum supported version in documentation/CI. |
 | Node.js 24 / pnpm 10 | Validated (`v24.2.0` / `10.12.1`) | Slice 1/4 | Keep declarations and lockfile aligned. |
 | Rust 1.96 | Validated in pinned container; host unavailable | Slice 1/3 | Reuse `scripts/check-rust.sh` in CI. |
-| PostGIS 17-3.5 image | Selected | Slice 2 | Pin image line in Compose. |
+| PostGIS 17-3.5 image | Validated locally | Slice 2 | Pinned image line in Compose; service uses `platform: linux/amd64` because Docker reported no native arm64 manifest for the selected tag. |
 | MLIT API key | Available locally; optional | Optional UAT-09 | Never add it to CI or required startup. |
 
 ---
@@ -120,6 +122,7 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | 2026-06-24 | Run migrations in a one-shot Compose service. | Makes ordering/failure visible and keeps API startup separate. | `PHASE-PLAN.md` |
 | 2026-06-24 | Make the MLIT smoke check optional. | Platform startup and CI must not depend on a private key or external availability. | `PHASE-PLAN.md` |
 | 2026-06-24 | Use the accepted stack without a new ADR. | The phase implements ADRs 001–005 rather than changing architecture. | ADRs 001–005 |
+| 2026-06-25 | Pin PostGIS Compose platform to `linux/amd64`. | Preserves the selected `postgis/postgis:17-3.5` image after Docker reported no arm64 manifest on this machine. | `infra/docker-compose.yml` |
 
 ### Changes From Original Phase Outline
 
@@ -140,20 +143,23 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Rust formatting | Pass | `rust:1.96.0-bookworm bash scripts/check-rust.sh` |
 | Rust lint | Pass | Clippy workspace/all-target/all-feature check with warnings denied |
 | Rust tests | Pass | Three workspace crates and domain doctests pass |
+| Compose config | Pass | `docker compose config` renders the root include, PostGIS service, named volume, and migration service. |
+| Database/migration smoke | Pass | Disposable `urbanlens_slice2_test` stack: Postgres healthy, `migrate` exited 0, SQLx ledger contains exactly two successful migrations after rerun. |
+| Schema inspection | Pass | `postgis`/`pgcrypto`, six empty foundation tables, `areas.geometry` MultiPolygon SRID 4326, and partial GiST index verified. |
 | TypeScript lint | Pass | `pnpm check:web` using ESLint 9 / Next.js rules |
 | TypeScript type check | Pass | `next typegen && tsc --noEmit` |
 | Frontend tests | Pass | Vitest 4.1.9: 1 file, 1 test passed |
 | Frontend production build | Pass | Next.js 16.2.9 compiled and prerendered `/` and `/_not-found` |
-| Database/migration tests | Not Run | No migrations exist yet. |
-| Integration tests | Not Run | Platform is not implemented. |
-| Docker Compose smoke test | Not Run | Compose definition is not implemented. |
+| Database/migration tests | Partial | Manual catalog and rerun smoke passed; committed migration integration tests are not yet added. |
+| Integration tests | Partial | PostGIS + migration lifecycle passed; API/web integration remains unimplemented. |
+| Docker Compose smoke test | Partial | Database/migration services validated in disposable Compose project; full API/web smoke remains for later slices. |
 
 ### UAT Status
 
 | Field | Value |
 |---|---|
 | UAT Readiness | `not_ready` |
-| UAT Result | `in_progress — partial Slice 1 evidence only` |
+| UAT Result | `in_progress — Slice 1 evidence plus Slice 2 database/migration evidence` |
 | Blocking Defects | `0` |
 | Required Cases | `8` |
 | Optional Cases | `1` |
@@ -165,7 +171,7 @@ The phase is done when a new developer can run `docker compose up --build`, open
 
 ### Last Meaningful Change
 
-Slice 1 was implemented and validated: workspaces, pinned tools, lockfiles, package scaffolds, ignores/environment contract, and shared Rust/web checks are available.
+Slice 2 was implemented and validated at database scope: root/infra Compose exists, PostGIS starts healthy, SQLx migrations run through a one-shot service, the six-table lineage schema is created empty, and migration reruns are safe.
 
 ### Current Working Assumption
 
@@ -187,7 +193,7 @@ sed -n '1,260p' .planning/phases/01-local-platform-foundation/PHASE-PLAN.md
 
 ### Exact Next Technical Step
 
-Implement Slice 2: add the root/infra Compose entrypoint, `postgis/postgis:17-3.5` service and health check, SQLx extension/schema migrations, and the dedicated migration binary. Validate fresh-volume and rerun behavior before adding API routes.
+Implement Slice 3: add API configuration, SQLx pool setup, Actix health/readiness endpoints, async-graphql connectivity response, bounded CORS, request IDs, and an API container health check after successful migration completion.
 
 ---
 
@@ -211,3 +217,4 @@ Implement Slice 2: add the root/infra Compose entrypoint, `postgis/postgis:17-3.
 |---|---|---|
 | 2026-06-24 17:55 +07:00 | `ready_for_implementation` | Decision-complete plan, status, and UAT documents created; implementation has not started. |
 | 2026-06-24 18:27 +07:00 | `in_progress` | Slice 1 completed; pinned Rust checks, frozen pnpm install, web lint/typecheck/test, and Next production build pass. |
+| 2026-06-25 14:05 +07:00 | `in_progress` | Slice 2 completed; Compose/PostGIS/migration lifecycle and schema smoke validation pass; focus moves to Slice 3 API behavior. |

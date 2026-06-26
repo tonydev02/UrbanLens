@@ -12,10 +12,10 @@
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-24` |
-| Last Updated | `2026-06-26 14:20 +07:00` |
+| Last Updated | `2026-06-26 15:15 +07:00` |
 | Target Completion | `TBD` |
 | Current Branch | `main` |
-| Current Commit | `169f517` |
+| Current Commit | `ffe6f2d` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related UAT | `PHASE-UAT.md` |
 
@@ -43,9 +43,9 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Database | In Progress | 70% | PostGIS service, extensions, six foundation tables, constraints, indexes, and SQLx rerun lifecycle are implemented and smoke-validated. |
 | Worker / Ingestion | In Progress | 25% | Compile-only importer crate exists; ingestion remains intentionally absent. |
 | Frontend | Implemented | 80% | App shell, root redirect, `/market-map`, empty map state, GraphQL connectivity panel, loading/error/retry states, and component tests pass. |
-| Infrastructure | In Progress | 70% | Root/infra Compose database lifecycle, API healthcheck, web Dockerfile, and web service exist; CI smoke remains. |
-| Tests | In Progress | 60% | Shared web check passes; Slice 2 database smoke and Slice 3 API/unit/image evidence exist; Slice 4 component tests pass; live API failure/CORS, Compose web smoke, and CI coverage remain. |
-| Documentation | In Progress | 65% | README, architecture, local-development docs, environment contract, and planning records are current for Slice 4. |
+| Infrastructure | In Progress | 72% | Root/infra Compose database lifecycle, API healthcheck, web Dockerfile, web service, and web image build exist; CI smoke remains. |
+| Tests | In Progress | 68% | Shared web check passes; Slice 2 database smoke, Slice 3 API/unit/image evidence, Slice 4 component tests, web image build, and local Compose success-path smoke pass; live failure/CORS and CI coverage remain. |
+| Documentation | In Progress | 67% | README, architecture, local-development docs, environment contract, and planning records are current for Slice 4 and the web Docker frozen-install fix. |
 | UAT | In Progress | 45% | Slice 1 through Slice 4 implementation evidence is recorded; full live API/web UAT remains. |
 
 ---
@@ -61,6 +61,8 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | 2026-06-25 | Completed Slice 2 with root Compose include, `infra/docker-compose.yml`, PostGIS 17-3.5 service, named volume, health-gated SQLx migration service, embedded migration binary, extension migration, and six-table lineage foundation migration. | `compose.yaml`, `infra/`, `apps/api/migrations/`, `apps/api/src/bin/migrate.rs` |
 | 2026-06-25 | Completed Slice 3 with API config, SQLx pool, Actix server, `/health`, `/ready`, GraphQL `connectivity`, bounded CORS, request IDs, API Compose service after migration success, image healthcheck, and API local-development docs. | `apps/api/src/lib.rs`, `apps/api/src/main.rs`, `apps/api/src/bin/healthcheck.rs`, `infra/docker-compose.yml`, `infra/api.Dockerfile`, `docs/local-development.md` |
 | 2026-06-26 | Completed Slice 4 implementation with Next.js app shell, `/market-map`, browser GraphQL connectivity proof, loading/error/retry/not-found states, web Compose service, web Dockerfile, tests, README, architecture, and local-development docs. | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/`, `infra/web.Dockerfile`, `infra/docker-compose.yml`, `README.md`, `docs/` |
+| 2026-06-26 | Fixed the web Docker frozen-install mismatch by copying `.npmrc` before `pnpm install --frozen-lockfile`; verified `docker compose build web`. | `infra/web.Dockerfile`, `README.md`, `docs/local-development.md`, `docs/architecture.md` |
+| 2026-06-26 | Verified local Compose success path: services healthy, migration complete, `/ready` ready, GraphQL `connectivity` ready, and `/market-map` HTTP 200. | `docker compose up --build -d`, `docker compose ps`, `curl` checks |
 
 ---
 
@@ -158,10 +160,10 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | TypeScript type check | Pass | `next typegen && tsc --noEmit` |
 | Frontend tests | Pass | Vitest 4.1.9: 5 files, 8 tests passed |
 | Frontend production build | Pass | Next.js 16.2.9 compiled and prerendered `/`, `/market-map`, and `/_not-found` |
-| Web Compose image build | Blocked | `docker compose build web` could not connect to the Docker daemon in this environment after sandbox approval; rerun with Docker Desktop running. |
+| Web Compose image build | Pass | `docker compose build web` builds `urbanlens-web:latest`; `.npmrc` is copied before `pnpm install --frozen-lockfile` so lockfile settings match inside Docker. |
 | Database/migration tests | Partial | Manual catalog and rerun smoke passed; committed migration integration tests are not yet added. |
-| Integration tests | Partial | PostGIS + migration lifecycle passed; API image/config passes; live API failure/CORS and web integration remain unimplemented. |
-| Docker Compose smoke test | Partial | Database/migration services validated in disposable Compose project and API image builds; full API/web smoke remains for later slices. |
+| Integration tests | Partial | PostGIS + migration lifecycle, API image/config, local API readiness, GraphQL connectivity, and web HTTP success pass; live failure/CORS and browser inspection remain unimplemented. |
+| Docker Compose smoke test | Partial | Success path passes locally: `postgres`, `api`, and `web` healthy; `migrate` exited; `/ready`, GraphQL `connectivity`, and `/market-map` succeed. Failure-mode and CI smoke remain. |
 
 ### UAT Status
 
@@ -228,4 +230,6 @@ Implement Slice 5: add CI and Compose smoke validation, add the optional MLIT di
 | 2026-06-24 18:27 +07:00 | `in_progress` | Slice 1 completed; pinned Rust checks, frozen pnpm install, web lint/typecheck/test, and Next production build pass. |
 | 2026-06-25 14:05 +07:00 | `in_progress` | Slice 2 completed; Compose/PostGIS/migration lifecycle and schema smoke validation pass; focus moves to Slice 3 API behavior. |
 | 2026-06-25 15:25 +07:00 | `in_progress` | Slice 3 completed; Actix/GraphQL API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, API healthcheck, Compose API dependency gating, docs, tests, Clippy, Compose config, and API image build pass; focus moves to Slice 4 frontend connectivity. |
-| 2026-06-26 14:20 +07:00 | `in_progress` | Slice 4 completed at implementation level; Next.js analyst shell, `/market-map`, browser GraphQL connectivity panel, loading/error/retry/not-found states, web Dockerfile, Compose web service, README, architecture, local-development docs, lint, typecheck, tests, and web production build pass. Full Docker Compose web image validation is pending because Docker daemon was unavailable. |
+| 2026-06-26 14:20 +07:00 | `in_progress` | Slice 4 completed at implementation level; Next.js analyst shell, `/market-map`, browser GraphQL connectivity panel, loading/error/retry/not-found states, web Dockerfile, Compose web service, README, architecture, local-development docs, lint, typecheck, tests, and web production build pass. Initial Docker validation was deferred and later superseded by the 15:00 and 15:15 evidence below. |
+| 2026-06-26 15:00 +07:00 | `in_progress` | Documentation synchronized after web Docker fix; `docker compose build web` now passes with `.npmrc` copied into the build context before frozen pnpm install. |
+| 2026-06-26 15:15 +07:00 | `in_progress` | Local Compose success-path smoke passed: all runtime services healthy, migration completed, API readiness and GraphQL connectivity report ready, and `/market-map` returns HTTP 200. |

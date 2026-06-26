@@ -48,6 +48,13 @@ Keep `NEXT_PUBLIC_GRAPHQL_URL` browser-reachable. In Docker Compose this is
 still `localhost:8080` because the request is made by the browser, not by the
 web container.
 
+## Dependency Install Contract
+
+The web image copies `.npmrc`, `package.json`, `pnpm-lock.yaml`, and
+`pnpm-workspace.yaml` before running `pnpm install --frozen-lockfile`. Keep
+`.npmrc` committed with the lockfile so Docker uses the same pnpm settings as
+local development.
+
 ## API Checks
 
 - `GET /health`: process liveness only.
@@ -67,11 +74,33 @@ web container.
 
 Responses include an `x-request-id` header. If the request already has `x-request-id`, the API preserves it; otherwise it generates one.
 
+## Local Smoke Checks
+
+After `docker compose up --build -d`, run:
+
+```bash
+docker compose ps
+curl http://localhost:8080/ready
+curl -s http://localhost:8080/graphql \
+  -H 'content-type: application/json' \
+  -d '{"query":"{ connectivity { service status databaseReachable migrationsApplied } }"}'
+curl -I http://localhost:3000/market-map
+```
+
+Expected results:
+
+- `postgres`, `api`, and `web` are healthy.
+- `migrate` exited successfully.
+- `/ready` returns `status: "ready"` with database and migration booleans true.
+- GraphQL `connectivity` returns `urbanlens-api`, `ready`, and true database and migration booleans.
+- `/market-map` returns HTTP 200.
+
 ## Frontend Checks
 
 ```bash
 bash scripts/check-web.sh
 corepack pnpm --filter @urbanlens/web build
+docker compose build web
 ```
 
 `scripts/check-web.sh` runs ESLint, Next type generation plus TypeScript, and
@@ -86,3 +115,6 @@ Vitest. It uses `pnpm` when it is on `PATH` and falls back to `corepack pnpm`.
   `CORS_ALLOWED_ORIGINS` includes the web origin.
 - If `docker compose build` cannot access `~/.docker` or the Docker socket,
   start Docker Desktop and rerun the command outside restricted sandboxing.
+- If Docker reports `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`, make sure the web
+  Dockerfile copies `.npmrc` before `pnpm install --frozen-lockfile` and rebuild
+  with the latest `main`.

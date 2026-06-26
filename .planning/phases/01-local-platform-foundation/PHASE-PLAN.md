@@ -345,7 +345,8 @@ Give developers a truthful browser-visible proof that web, API, and database are
 - [x] Added component tests for root redirect, market-map copy, connectivity loading/success/degraded/error/retry, route error, and not-found behavior.
 - [x] Added `infra/web.Dockerfile` and Compose `web` service gated on API health.
 - [x] Updated README, architecture, and local-development docs for the browser-facing GraphQL proof.
-- [ ] Full browser/Compose UAT remains pending because Docker daemon was unavailable during implementation validation.
+- [x] Local Compose success-path smoke passed after the Dockerfile `.npmrc` fix.
+- [ ] Full browser screenshot/console inspection and failure-mode Compose UAT remain pending.
 
 ### Slice 5 — CI, Smoke Test, Documentation, and UAT Readiness
 

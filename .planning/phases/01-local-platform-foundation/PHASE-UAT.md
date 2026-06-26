@@ -13,7 +13,7 @@
 | Tester | `Codex` |
 | Started | `2026-06-24` |
 | Completed | `not_completed` |
-| Build / Commit | `working tree based on 169f517; Slice 4 implementation uncommitted` |
+| Build / Commit | `working tree based on ffe6f2d; docs synchronization uncommitted` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related Status | `PHASE-STATUS.md` |
 
@@ -100,9 +100,18 @@ Prove that the primary Phase 1 deliverable works without undocumented preparatio
 
 **Actual Result**
 
-Full UAT-01 was not run because Docker daemon was unavailable in the current implementation environment. Slice 2 subset was previously run in disposable project `urbanlens_slice2_test` with `POSTGRES_PORT=55432`: Postgres started, became healthy, and the `migrate` service started only after the Postgres health gate. As of Slice 4, API and web Compose service definitions are implemented and still need live stack validation.
+UAT-01 success path passed on 2026-06-26:
 
-**Status:** `not_run`
+- `docker compose up --build -d` built `urbanlens-api`, `urbanlens-migrate`, and `urbanlens-web`.
+- `postgres` became healthy before `migrate` started.
+- `migrate` exited successfully before `api` started.
+- `api` became healthy before `web` started.
+- `web` became healthy and exposed `http://localhost:3000/market-map`.
+- `curl -I http://127.0.0.1:3000/market-map` returned HTTP 200.
+
+No secret, manual migration command, or local `.env` was required.
+
+**Status:** `passed_success_path`
 
 **Evidence**
 
@@ -188,15 +197,14 @@ Verify all public Phase 1 API contracts and prove GraphQL reaches PostgreSQL.
 
 **Actual Result**
 
-Not run as live endpoint UAT because the full stack was not started after Slice 3. Slice 3 implementation evidence exists:
+Live success-path checks passed on 2026-06-26:
 
-- API route wiring for `/health`, `/ready`, and `/graphql` is implemented.
-- `connectivity` GraphQL resolver checks database reachability and SQLx migration metadata.
-- Request ID middleware generates or preserves `x-request-id`.
-- Config parsing rejects wildcard CORS origins.
-- API image builds with `urbanlens-api`, `urbanlens-migrate`, and `urbanlens-healthcheck`.
+- `GET http://127.0.0.1:8080/ready` returned `{"status":"ready","database_reachable":true,"migrations_applied":true}`.
+- GraphQL `connectivity` returned `service: "urbanlens-api"`, `status: "ready"`, `databaseReachable: true`, and `migrationsApplied: true`.
+- API route wiring, request ID middleware, and CORS config parsing remain covered by implementation/unit evidence.
+- Explicit live `/health`, request-ID preservation, and CORS preflight checks still remain for full UAT.
 
-**Status:** `in_progress — Slice 3 implementation evidence passed; live endpoint UAT not run`
+**Status:** `in_progress — live success path passed; request-ID/CORS checks remain`
 
 **Evidence**
 
@@ -241,10 +249,11 @@ Slice 4 implementation evidence passed on 2026-06-26:
 - Route error and not-found states are tested.
 - No fake point, transaction, metric, provenance, or market claim was introduced.
 - `bash scripts/check-web.sh`, `corepack pnpm --filter @urbanlens/web build`, and `docker compose config` pass.
+- Live `curl -I http://127.0.0.1:3000/market-map` returned HTTP 200 from the Compose web service.
 
-Full browser UAT against a running Compose stack was not executed because Docker daemon was unavailable in this environment.
+Full browser screenshot/console inspection remains pending.
 
-**Status:** `in_progress — Slice 4 implementation evidence passed; live browser UAT not run`
+**Status:** `in_progress — Slice 4 implementation and web HTTP success passed; browser inspection remains`
 
 **Evidence**
 
@@ -397,14 +406,16 @@ Verify that the committed workflow, not local incidental state, satisfies the ph
 
 **Actual Result**
 
-Partially validated for Slice 1:
+Partially validated through Slice 4:
 
 - `pnpm install --frozen-lockfile` completed from the generated project lockfile using Node `v24.2.0` and pnpm `10.12.1`.
-- `pnpm check:web` passed ESLint, Next route type generation, strict TypeScript, and Vitest (`1` file / `1` test).
-- Next.js `16.2.9` production build compiled and prerendered `/` plus `/_not-found`.
+- `bash scripts/check-web.sh` passed ESLint, Next route type generation, strict TypeScript, and Vitest (`5` files / `8` tests).
+- Next.js `16.2.9` production build compiled and prerendered `/`, `/market-map`, and `/_not-found`.
 - `rust:1.96.0-bookworm bash scripts/check-rust.sh` passed rustfmt, Clippy with warnings denied, all three workspace crates, and domain doctests.
-- GitHub Actions, Compose smoke validation, README, architecture, and local-development documentation remain unimplemented, so the full case cannot pass.
-- Slice 3 added `docs/local-development.md`, and `docker compose config` plus `docker compose build api` passed for the API service.
+- README, architecture, and local-development documentation are implemented and synchronized through the Slice 4 web Docker frozen-install fix.
+- `docker compose config`, `docker compose build api`, and `docker compose build web` pass for the implemented API and web images.
+- `docker compose up --build -d` success-path smoke passed locally with healthy `postgres`, `api`, and `web`, successful `migrate`, ready API/GraphQL, and HTTP 200 `/market-map`.
+- GitHub Actions and full failure-mode Compose smoke validation remain unimplemented, so the full case cannot pass.
 
 **Status:** `in_progress`
 
@@ -414,6 +425,10 @@ Partially validated for Slice 1:
 scripts/check-rust.sh — pass in rust:1.96.0-bookworm
 scripts/check-web.sh — pass
 pnpm --filter @urbanlens/web build — pass
+docker compose config — pass
+docker compose build api — pass
+docker compose build web — pass
+docker compose up --build -d — pass success path
 Cargo.lock and pnpm-lock.yaml — generated and present
 ```
 
@@ -490,12 +505,12 @@ Record pass/fail metadata only; never paste a key or authenticated request heade
 |---|---|---|---|
 | EV-01 | Command output | Slice 2 Compose build/start/status and migration exit: PostGIS healthy, migrate exited 0, rerun exited 0 | Current session output; disposable project `urbanlens_slice2_test` |
 | EV-02 | Database output | Extensions, schema/indexes, empty row counts, geometry metadata, and SQLx migration ledger | Current session output; disposable project `urbanlens_slice2_test` |
-| EV-03 | API output | Slice 3 implementation evidence: config/request-ID unit tests pass; `docker compose build api` copies API, migration, and healthcheck binaries. Live endpoint output remains TBD. | Current session output |
-| EV-04 | Screenshot | Connected `/market-map` foundation state | TBD |
+| EV-03 | API output | `/ready` returns ready and GraphQL `connectivity` returns ready/database/migration true; config/request-ID unit tests pass; CORS live preflight remains TBD. | Current session output |
+| EV-04 | Web output | `/market-map` returns HTTP 200 from Compose web service; browser screenshot remains TBD. | Current session output |
 | EV-05 | Screenshot/output | Degraded and recovered frontend/API states | TBD |
 | EV-06 | Test output | Slice 1 Rust/frontend checks pass; Slice 3 `cargo fmt --all --check`, Clippy with warnings denied, and workspace tests pass; database/live integration pending | Current session output; UAT-08 actual result |
 | EV-07 | CI run | Passing workflow and always-run teardown | TBD |
-| EV-08 | Documentation review | Clean-clone setup and troubleshooting verification | TBD |
+| EV-08 | Documentation review | README, architecture, and local-development docs synchronized with web shell, browser GraphQL URL, Compose web service, and `.npmrc` Docker install contract | Current session output |
 
 ---
 

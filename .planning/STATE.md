@@ -15,7 +15,7 @@
 | Last Updated | `2026-06-26` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `169f517` |
+| Latest Commit | `ffe6f2d` |
 
 ---
 
@@ -73,8 +73,8 @@ Begin Slice 5: add CI, Compose smoke validation, optional MLIT diagnostic, and e
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
 | Ingestion Pipeline | Stable | Phase 00 | Three official fixtures and approved API access are available. |
 | Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
-| Testing | In Progress | Phase 01 | Shared Rust/web checks pass; Slice 2 database evidence and Slice 3 API/image evidence exist; web/CI/full UAT checks remain. |
-| Infrastructure / CI | In Progress | Phase 01 | Root/infra Compose database lifecycle, API service healthcheck, and web service exist; CI smoke remains. |
+| Testing | In Progress | Phase 01 | Shared Rust/web checks pass; local Compose startup, API readiness, GraphQL connectivity, and web HTTP smoke pass; CI/edge-case UAT checks remain. |
+| Infrastructure / CI | In Progress | Phase 01 | Root/infra Compose starts PostGIS, migrate, API, and web successfully; CI smoke remains. |
 | Documentation | In Progress | Phase 01 | README, architecture, local development, environment contract, and API/web startup docs are current for Slice 4; CI/UAT docs remain. |
 
 ---
@@ -101,6 +101,8 @@ Begin Slice 5: add CI, Compose smoke validation, optional MLIT diagnostic, and e
 |---|---|---|---|
 | 2026-06-24 | Completed Slice 1: Cargo/pnpm workspaces, pinned tools, lockfiles, API/domain/importer/web scaffolds, environment contract, shared checks, and passing Rust/frontend validation. | 01 | Root manifests, `apps/`, `crates/`, `workers/importer/`, `scripts/` |
 | 2026-06-26 | Completed Slice 4 implementation: Next.js analyst shell, `/market-map`, root redirect, QueryClient/GraphQL browser connectivity panel, loading/error/retry/not-found states, web Compose service, and README/architecture/local-development updates. | 01 | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/`, `infra/web.Dockerfile`, `infra/docker-compose.yml`, `docs/`, `README.md` |
+| 2026-06-26 | Fixed and verified the web Docker frozen-install contract by copying `.npmrc` before `pnpm install --frozen-lockfile`; `docker compose build web` passes. | 01 | `infra/web.Dockerfile`, `docs/local-development.md` |
+| 2026-06-26 | Verified local Compose startup: `postgres`, `api`, and `web` healthy; `migrate` exited; `/ready`, GraphQL `connectivity`, and `/market-map` returned expected success responses. | 01 | `docker compose ps`, `curl /ready`, `curl /graphql`, `curl /market-map` |
 | 2026-06-25 | Completed Slice 3 API foundation: Actix server, API config, SQLx pool, bounded CORS, generated/preserved request IDs, `/health`, `/ready`, GraphQL `connectivity`, API service after migration success, and container healthcheck. | 01 | `apps/api/src/lib.rs`, `apps/api/src/main.rs`, `apps/api/src/bin/healthcheck.rs`, `infra/docker-compose.yml`, `infra/api.Dockerfile`, `docs/local-development.md` |
 | 2026-06-25 | Completed Slice 2 database foundation: root Compose include, `infra/docker-compose.yml`, `postgis/postgis:17-3.5`, named volume, health-gated one-shot SQLx migration service, embedded migration binary, and lineage schema migrations. | 01 | `compose.yaml`, `infra/`, `apps/api/migrations/`, `apps/api/src/bin/migrate.rs` |
 | 2026-06-24 | Completed decision-ready Phase 01 plan, status, and UAT documents with interfaces, schema constraints, implementation slices, CI, and failure cases. | 01 | `.planning/phases/01-local-platform-foundation/` |

@@ -49,6 +49,21 @@ No local `.env` or secret is required for the core platform. Use
 [.env.example](.env.example) only when overriding ports, origins, or optional
 source diagnostics.
 
+## Smoke Proof
+
+```bash
+docker compose ps
+curl http://localhost:8080/ready
+curl -s http://localhost:8080/graphql \
+  -H 'content-type: application/json' \
+  -d '{"query":"{ connectivity { service status databaseReachable migrationsApplied } }"}'
+curl -I http://localhost:3000/market-map
+```
+
+The expected proof is healthy `postgres`, `api`, and `web` services, a completed
+`migrate` service, ready API/database/migration JSON, and HTTP 200 for the
+market map route.
+
 ## Checks
 
 ```bash
@@ -56,10 +71,12 @@ bash scripts/check-rust.sh
 bash scripts/check-web.sh
 corepack pnpm --filter @urbanlens/web build
 docker compose config
+docker compose build web
 ```
 
-`docker compose build web` validates the standalone web image when Docker is
-running.
+The web Docker build uses the committed `.npmrc` before
+`pnpm install --frozen-lockfile`, so container installs use the same peer
+dependency settings as the lockfile.
 
 ## Data Sources
 

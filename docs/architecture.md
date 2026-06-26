@@ -19,6 +19,9 @@ postgres --healthy--> migrate --success--> api --healthy--> web
   and `/graphql`.
 - `web` starts after API readiness and serves the analyst shell at
   `/market-map`.
+- The web image performs a frozen pnpm install using the committed `.npmrc`,
+  workspace manifest, package manifest, and lockfile before copying application
+  source.
 
 ## API Boundary
 

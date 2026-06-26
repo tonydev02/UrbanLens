@@ -11,7 +11,7 @@
 | Status | `in_progress` |
 | Owner | `Project owner` |
 | Created | `2026-06-24` |
-| Last Updated | `2026-06-25` |
+| Last Updated | `2026-06-26` |
 | Target Milestone | `MVP local platform foundation` |
 | Related ADRs | `docs/adr/001-use-postgis-for-spatial-queries.md`, `002-use-graphql-for-product-api.md`, `003-preserve-raw-source-payloads.md`, `004-model-location-precision-explicitly.md`, `005-use-rust-actix-web-for-api.md` |
 
@@ -42,7 +42,7 @@ Every later MVP capability depends on a reliable, observable, and documented run
 - [ ] Start `web`, `api`, and `postgres` with `docker compose up --build`; run migrations through a one-shot `migrate` service.
 - [ ] Add PostGIS/pgcrypto extensions and the first lineage-compatible schema migrations.
 - [x] Implement HTTP liveness/readiness endpoints and the GraphQL connectivity query.
-- [ ] Implement the first application shell, market-map placeholder, navigation, connectivity state, loading state, and error boundary.
+- [x] Implement the first application shell, market-map placeholder, navigation, connectivity state, loading state, and error boundary.
 - [ ] Add structured request logging, request IDs, bounded local CORS, tests, CI, and local-development documentation.
 - [ ] Add an optional secret-safe MLIT API connectivity script that is not required for normal startup or CI.
 
@@ -124,7 +124,7 @@ Every later MVP capability depends on a reliable, observable, and documented run
 - Use Rust 1.96 with edition 2024, a root Cargo workspace, and committed `Cargo.lock`/`rust-toolchain.toml`.
 - Use `postgis/postgis:17-3.5` and a named database volume.
 - Keep styling in ordinary CSS/CSS modules; do not add Tailwind or another UI framework.
-- Use `graphql-request` with TanStack Query for the health request. Do not add Apollo or generated shared types in this phase.
+- Use `graphql-request` with TanStack Query for the connectivity request. Do not add Apollo or generated shared types in this phase.
 - `workers/importer` is a workspace binary that compiles and reports that ingestion is not implemented; it is not a Compose service.
 - `crates/domain` is an intentionally small library crate and must not invent transaction/property fields.
 
@@ -327,15 +327,25 @@ Give developers a truthful browser-visible proof that web, API, and database are
 
 **Tasks**
 
-- [ ] Build the App Router layout, navigation, root redirect, and empty `/market-map` route.
-- [ ] Configure QueryClient and GraphQL request boundaries using the public API URL.
-- [ ] Implement loading, connected, degraded/error, retry, route-error, and not-found states.
-- [ ] Add accessible component tests without introducing fake market data or a map library.
+- [x] Build the App Router layout, navigation, root redirect, and empty `/market-map` route.
+- [x] Configure QueryClient and GraphQL request boundaries using the public API URL.
+- [x] Implement loading, connected, degraded/error, retry, route-error, and not-found states.
+- [x] Add accessible component tests without introducing fake market data or a map library.
 
 **Expected Evidence**
 
 - [ ] A browser at `http://localhost:3000/market-map` shows API and PostgreSQL connected.
-- [ ] Simulated loading/failure tests prove the application remains readable and retryable.
+- [x] Simulated loading/failure tests prove the application remains readable and retryable.
+
+**Slice 4 Implementation Note — 2026-06-26**
+
+- [x] Added `Providers` with TanStack Query and a browser-side `graphql-request` connectivity client using `NEXT_PUBLIC_GRAPHQL_URL`.
+- [x] Added the App Router shell, active Market Map navigation, `/` redirect, `/market-map`, route loading/error states, and global not-found state.
+- [x] Added an honest empty map panel that states transaction geography is not loaded and avoids fake points, metrics, or provenance claims.
+- [x] Added component tests for root redirect, market-map copy, connectivity loading/success/degraded/error/retry, route error, and not-found behavior.
+- [x] Added `infra/web.Dockerfile` and Compose `web` service gated on API health.
+- [x] Updated README, architecture, and local-development docs for the browser-facing GraphQL proof.
+- [ ] Full browser/Compose UAT remains pending because Docker daemon was unavailable during implementation validation.
 
 ### Slice 5 — CI, Smoke Test, Documentation, and UAT Readiness
 
@@ -452,8 +462,8 @@ The teardown command must be registered as an always-run CI step, including afte
 
 | Dependency | Owner / Source | Status | Impact if Missing |
 |---|---|---|---|
-| Docker Engine with Compose | Developer / CI | Available locally | One-command platform and smoke UAT cannot run |
-| Node 24 and pnpm 10 | Container/CI toolchain | Planned | Frontend local checks cannot run outside containers |
+| Docker Engine with Compose | Developer / CI | Required; unavailable in the current implementation environment | One-command platform and smoke UAT cannot run |
+| Node 24 and pnpm 10 | Container/CI toolchain | Implemented locally through Corepack/pnpm and the web Dockerfile | Frontend local checks cannot run outside containers |
 | Rust 1.96 | Container/CI toolchain | Planned; host Cargo is absent | Rust checks must initially run in Docker/CI |
 | `postgis/postgis:17-3.5` | Docker PostGIS project | Selected | Database/spatial foundation cannot start |
 | MLIT key | Developer-local only | Available, optional | Only optional connectivity check is skipped |
@@ -464,7 +474,7 @@ The teardown command must be registered as an always-run CI step, including afte
 |---|---:|---:|---|
 | Cross-platform Compose include/paths behave differently | Medium | Medium | Document minimum Compose version and validate root command in CI |
 | Rust image builds are slow for new contributors | Medium | Medium | Layer dependency builds and use CI caches without adding another build service |
-| Browser/API origin configuration differs inside/outside Compose | Medium | High | Separate explicit URLs/origin variables and test browser-visible connectivity |
+| Browser/API origin configuration differs inside/outside Compose | Medium | High | Separate explicit URLs/origin variables, document browser-facing `NEXT_PUBLIC_GRAPHQL_URL`, and test browser-visible connectivity |
 | Foundational schema overcommits before ingestion evidence | Low | High | Limit tables to Phase 0 concepts and allow no domain/product rows |
 | Health checks mask database outages | Low | High | Separate liveness/readiness contracts and failure tests |
 | Optional source test leaks its key | Low | High | No shell tracing/header output, bounded script, no CI secret |

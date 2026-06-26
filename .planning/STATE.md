@@ -12,7 +12,7 @@
 | Current Phase | `01 — Local Platform Foundation` |
 | Current Phase Status | `in_progress` |
 | Project Health | `green` |
-| Last Updated | `2026-06-25` |
+| Last Updated | `2026-06-26` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
 | Latest Commit | `169f517` |
@@ -48,7 +48,7 @@ Phase 0 passed all eight UAT cases, and Phase 01 now has decision-complete plan/
 > **Do this first when resuming work:**
 
 ```text
-Begin Slice 4: add the Next.js analyst shell/connectivity proof on top of the migrated PostGIS database and observable Actix/GraphQL API.
+Begin Slice 5: add CI, Compose smoke validation, optional MLIT diagnostic, and execute full Phase 01 UAT with Docker running.
 ```
 
 ### Resume Sequence
@@ -58,7 +58,8 @@ Begin Slice 4: add the Next.js analyst shell/connectivity proof on top of the mi
 3. Preserve the completed Slice 1 shared check/environment boundaries.
 4. Preserve the completed Slice 2 Compose/PostGIS/migration lifecycle and rerun evidence.
 5. Preserve the completed Slice 3 API service, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API container healthcheck.
-6. Begin Slice 4 frontend behavior only after confirming the API image still builds and the Compose API service depends on successful migrations.
+6. Preserve the completed Slice 4 analyst shell, `/market-map`, browser-side GraphQL connectivity proof, route loading/error/not-found states, and Compose `web` service.
+7. Begin Slice 5 only after confirming Docker is available for full stack smoke validation.
 
 ---
 
@@ -71,10 +72,10 @@ Begin Slice 4: add the Next.js analyst shell/connectivity proof on top of the mi
 | Backend API | Implemented | Phase 01 | Slice 3 Actix API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API image healthcheck are in place. |
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
 | Ingestion Pipeline | Stable | Phase 00 | Three official fixtures and approved API access are available. |
-| Frontend Workspace | In Progress | Phase 01 | Next.js scaffold, strict TypeScript, initial test, and production build pass. |
+| Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
 | Testing | In Progress | Phase 01 | Shared Rust/web checks pass; Slice 2 database evidence and Slice 3 API/image evidence exist; web/CI/full UAT checks remain. |
-| Infrastructure / CI | In Progress | Phase 01 | Root/infra Compose database lifecycle and API service healthcheck exist; web service and CI remain. |
-| Documentation | In Progress | Phase 01 | Environment contract and API local-development docs are current; README/architecture docs remain. |
+| Infrastructure / CI | In Progress | Phase 01 | Root/infra Compose database lifecycle, API service healthcheck, and web service exist; CI smoke remains. |
+| Documentation | In Progress | Phase 01 | README, architecture, local development, environment contract, and API/web startup docs are current for Slice 4; CI/UAT docs remain. |
 
 ---
 
@@ -99,6 +100,7 @@ Begin Slice 4: add the Next.js analyst shell/connectivity proof on top of the mi
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
 | 2026-06-24 | Completed Slice 1: Cargo/pnpm workspaces, pinned tools, lockfiles, API/domain/importer/web scaffolds, environment contract, shared checks, and passing Rust/frontend validation. | 01 | Root manifests, `apps/`, `crates/`, `workers/importer/`, `scripts/` |
+| 2026-06-26 | Completed Slice 4 implementation: Next.js analyst shell, `/market-map`, root redirect, QueryClient/GraphQL browser connectivity panel, loading/error/retry/not-found states, web Compose service, and README/architecture/local-development updates. | 01 | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/`, `infra/web.Dockerfile`, `infra/docker-compose.yml`, `docs/`, `README.md` |
 | 2026-06-25 | Completed Slice 3 API foundation: Actix server, API config, SQLx pool, bounded CORS, generated/preserved request IDs, `/health`, `/ready`, GraphQL `connectivity`, API service after migration success, and container healthcheck. | 01 | `apps/api/src/lib.rs`, `apps/api/src/main.rs`, `apps/api/src/bin/healthcheck.rs`, `infra/docker-compose.yml`, `infra/api.Dockerfile`, `docs/local-development.md` |
 | 2026-06-25 | Completed Slice 2 database foundation: root Compose include, `infra/docker-compose.yml`, `postgis/postgis:17-3.5`, named volume, health-gated one-shot SQLx migration service, embedded migration binary, and lineage schema migrations. | 01 | `compose.yaml`, `infra/`, `apps/api/migrations/`, `apps/api/src/bin/migrate.rs` |
 | 2026-06-24 | Completed decision-ready Phase 01 plan, status, and UAT documents with interfaces, schema constraints, implementation slices, CI, and failure cases. | 01 | `.planning/phases/01-local-platform-foundation/` |
@@ -124,7 +126,7 @@ Begin Slice 4: add the Next.js analyst shell/connectivity proof on top of the mi
 
 | ID | Risk | Likelihood | Impact | Mitigation |
 |---|---|---:|---:|---|
-| RSK-01 | Browser and container API URLs/origins may diverge. | Medium | High | Use explicit browser/service URLs and cover browser-visible connectivity in smoke/UAT. |
+| RSK-01 | Browser and container API URLs/origins may diverge. | Medium | High | `NEXT_PUBLIC_GRAPHQL_URL` is documented as browser-facing and covered by component tests; full Compose/browser UAT remains. |
 | RSK-02 | Source revisions can change historical query results. | Medium | Medium | Version each retrieval by query, timestamp, and artifact checksum. |
 | RSK-03 | XPT station points cannot be guessed onto CSV/XIT rows. | High | High | Treat XPT features as their own source records or keep other observations spatially unknown. |
 | RSK-04 | Optional authenticated API diagnostics could disclose a local key if implemented carelessly. | Low | High | Keep the check out of CI, disable tracing/header output, and never persist the response. |
@@ -209,11 +211,11 @@ Detailed discovery notes and progress belong in the active phase documents and `
 
 ### Last Session Summary
 
-Completed Phase 01 Slice 3. The API now starts as an Actix service with env-based config, a bounded SQLx pool, bounded CORS, generated/preserved `x-request-id`, `/health`, `/ready`, and GraphQL `connectivity`; Compose starts `api` only after healthy Postgres and a successful one-shot `migrate`; the API image contains `urbanlens-api`, `urbanlens-migrate`, and `urbanlens-healthcheck`.
+Completed Phase 01 Slice 4 implementation. The Next.js app now redirects `/` to `/market-map`, renders the analyst shell with active Market Map navigation, shows an honest empty map state, and runs a browser-side GraphQL `connectivity` proof with loading, degraded/error, and retry states. Compose now includes a `web` service and standalone web Dockerfile. README, architecture, local-development, and planning docs were updated.
 
 ### Where Work Stopped
 
-Phase 00 is closed. Phase 01 is `in_progress`; Slices 1, 2, and 3 are complete at implementation level. Browser-visible `/market-map` proof, web Compose service, CI smoke, and full UAT remain for Slices 4 and 5.
+Phase 00 is closed. Phase 01 is `in_progress`; Slices 1 through 4 are complete at implementation level. CI smoke, optional MLIT diagnostic, full Docker Compose/browser UAT, and final phase UAT remain for Slice 5.
 
 ### First File to Read Next Time
 
@@ -224,5 +226,5 @@ Phase 00 is closed. Phase 01 is `in_progress`; Slices 1, 2, and 3 are complete a
 ### First Action Next Time
 
 ```text
-Begin Phase 01 Slice 4: implement the Next.js analyst shell and browser-visible GraphQL connectivity state against the Slice 3 `/graphql` `connectivity` query.
+Begin Phase 01 Slice 5: add CI/smoke validation and run the full local platform UAT with Docker available.
 ```

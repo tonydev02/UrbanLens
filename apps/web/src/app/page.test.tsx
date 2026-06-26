@@ -1,17 +1,19 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import HomePage from "./page";
 
-describe("HomePage", () => {
-  it("identifies the workspace as a foundation without claiming product data", () => {
-    render(<HomePage />);
+const { redirect } = vi.hoisted(() => ({
+  redirect: vi.fn(),
+}));
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "UrbanLens workspace foundation" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Analyst routes and public-data connectivity arrive in later/i),
-    ).toBeInTheDocument();
+vi.mock("next/navigation", () => ({
+  redirect,
+}));
+
+describe("HomePage", () => {
+  it("redirects the root route to the market map workspace", () => {
+    HomePage();
+
+    expect(redirect).toHaveBeenCalledWith("/market-map");
   });
 });

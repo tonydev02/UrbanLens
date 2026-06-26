@@ -13,7 +13,7 @@
 | Tester | `Codex` |
 | Started | `2026-06-24` |
 | Completed | `not_completed` |
-| Build / Commit | `working tree based on 169f517; Slice 3 implementation uncommitted` |
+| Build / Commit | `working tree based on 169f517; Slice 4 implementation uncommitted` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related Status | `PHASE-STATUS.md` |
 
@@ -100,7 +100,7 @@ Prove that the primary Phase 1 deliverable works without undocumented preparatio
 
 **Actual Result**
 
-Full UAT-01 was not run because API and web Compose services are not implemented until Slices 3 and 4. Slice 2 subset was run in disposable project `urbanlens_slice2_test` with `POSTGRES_PORT=55432`: Postgres started, became healthy, and the `migrate` service started only after the Postgres health gate.
+Full UAT-01 was not run because Docker daemon was unavailable in the current implementation environment. Slice 2 subset was previously run in disposable project `urbanlens_slice2_test` with `POSTGRES_PORT=55432`: Postgres started, became healthy, and the `migrate` service started only after the Postgres health gate. As of Slice 4, API and web Compose service definitions are implemented and still need live stack validation.
 
 **Status:** `not_run`
 
@@ -232,9 +232,19 @@ Verify that the frontend communicates the platform state honestly and accessibly
 
 **Actual Result**
 
-Not run.
+Slice 4 implementation evidence passed on 2026-06-26:
 
-**Status:** `not_run`
+- `/` redirects to `/market-map`.
+- The shell includes the UrbanLens brand and active Market Map navigation.
+- `/market-map` renders an empty map state that explicitly says transaction geography is not loaded.
+- The connectivity panel uses browser-side GraphQL configuration and renders loading, connected, degraded, network-error, and retry states in component tests.
+- Route error and not-found states are tested.
+- No fake point, transaction, metric, provenance, or market claim was introduced.
+- `bash scripts/check-web.sh`, `corepack pnpm --filter @urbanlens/web build`, and `docker compose config` pass.
+
+Full browser UAT against a running Compose stack was not executed because Docker daemon was unavailable in this environment.
+
+**Status:** `in_progress — Slice 4 implementation evidence passed; live browser UAT not run`
 
 **Evidence**
 

@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f4f1e8;
+  background: #f6f7f9;
   color: #17201d;
 }
 
@@ -11,18 +11,26 @@
 
 body {
   margin: 0;
+  min-width: 320px;
 }
 
-main {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 5rem 2rem;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 h1 {
-  margin: 0.5rem 0 1rem;
-  font-size: clamp(2rem, 6vw, 4rem);
-  line-height: 1;
+  margin: 0.35rem 0 0.75rem;
+  font-size: 2.35rem;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: 0;
 }
 
 p {
@@ -32,9 +40,339 @@ p {
 
 .eyebrow {
   margin: 0;
-  color: #436158;
+  color: #356154;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.5rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid #d7dee8;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.brand-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.4rem;
+  height: 2.4rem;
+  place-items: center;
+  border: 1px solid #21483f;
+  background: #21483f;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.brand-name,
+.brand-context {
+  display: block;
+}
+
+.brand-name {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.brand-context {
+  color: #61706c;
+  font-size: 0.82rem;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.4rem;
+  padding: 0 0.85rem;
+  border: 1px solid transparent;
+  color: #37423f;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.nav-link[aria-current="page"] {
+  border-color: #a9c7bd;
+  background: #e7f2ee;
+  color: #21483f;
+}
+
+.workspace {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.market-map-page {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.page-intro {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.page-intro p:last-child {
+  margin: 0;
+  color: #53615d;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.map-panel {
+  position: relative;
+  min-height: 34rem;
+  overflow: hidden;
+  border: 1px solid #cfd7e2;
+  background:
+    linear-gradient(90deg, rgba(56, 86, 107, 0.08) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(56, 86, 107, 0.08) 1px, transparent 1px),
+    #eef3f0;
+  background-size: 56px 56px;
+}
+
+.map-panel::after {
+  position: absolute;
+  inset: 4rem 1.5rem 1.5rem;
+  border: 1px dashed #96aaa3;
+  content: "";
+}
+
+.map-toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #cfd7e2;
+  background: rgba(255, 255, 255, 0.9);
+  color: #37423f;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.empty-map-state {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(28rem, calc(100% - 3rem));
+  margin: 9rem auto 0;
+  padding: 1.25rem;
+  border: 1px solid #cfd7e2;
+  background: #ffffff;
+}
+
+.empty-map-state p {
+  margin: 0.75rem 0 0;
+  color: #53615d;
+}
+
+.side-panel {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.status-panel,
+.route-state {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #cfd7e2;
+  background: #ffffff;
+  padding: 1.25rem;
+}
+
+.status-panel-warning {
+  border-color: #d0a35b;
+  background: #fffaf0;
+}
+
+.status-heading-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-copy {
+  margin: 0;
+  color: #53615d;
+}
+
+.status-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.status-list div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 42%) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid #e2e7ed;
+}
+
+.status-list dt {
+  color: #61706c;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-list dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid #21483f;
+  background: #21483f;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.button-secondary {
+  border-color: #a9b8c6;
+  background: #ffffff;
+  color: #263536;
+}
+
+.button:focus-visible,
+.nav-link:focus-visible,
+.brand:focus-visible {
+  outline: 3px solid #2d71b8;
+  outline-offset: 3px;
+}
+
+.refresh-note {
+  align-self: start;
+  color: #2d71b8;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.status-skeleton {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.status-skeleton span,
+.map-panel-loading {
+  position: relative;
+  overflow: hidden;
+  background: #dfe6ee;
+}
+
+.status-skeleton span {
+  height: 1rem;
+}
+
+.status-skeleton span:nth-child(2) {
+  width: 74%;
+}
+
+.status-skeleton span:nth-child(3) {
+  width: 52%;
+}
+
+.status-skeleton span::after,
+.map-panel-loading::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  content: "";
+  transform: translateX(-100%);
+  animation: shimmer 1.4s infinite;
+}
+
+.route-state {
+  max-width: 42rem;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 920px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-panel {
+    min-height: 26rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .top-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .brand-context {
+    display: none;
+  }
+
+  .workspace {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+  }
+
+  .map-toolbar,
+  .status-list div {
+    grid-template-columns: 1fr;
+  }
+
+  .map-toolbar {
+    display: grid;
+  }
+
+  .empty-map-state {
+    margin-top: 6rem;
+  }
 }

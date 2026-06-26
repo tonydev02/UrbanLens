@@ -12,6 +12,7 @@ analyst-facing market exploration rather than property marketplace workflows.
 - Browser-visible GraphQL `connectivity` proof showing API, PostgreSQL, and
   migration readiness.
 - Docker Compose lifecycle for `postgres`, `migrate`, `api`, and `web`.
+- GitHub Actions workflow and reusable Compose smoke validation.
 
 The map route intentionally contains no fake transaction points or metrics.
 Official transaction data arrives through later ingestion slices.
@@ -52,31 +53,45 @@ source diagnostics.
 ## Smoke Proof
 
 ```bash
-docker compose ps
-curl http://localhost:8080/ready
-curl -s http://localhost:8080/graphql \
-  -H 'content-type: application/json' \
-  -d '{"query":"{ connectivity { service status databaseReachable migrationsApplied } }"}'
-curl -I http://localhost:3000/market-map
+bash scripts/smoke-compose.sh
 ```
 
-The expected proof is healthy `postgres`, `api`, and `web` services, a completed
-`migrate` service, ready API/database/migration JSON, and HTTP 200 for the
-market map route.
+The smoke script builds and starts the stack, checks service health, verifies
+`migrate` exits successfully, calls `/health`, `/ready`, GraphQL
+`connectivity`, CORS preflights, `/market-map`, and inspects the PostGIS
+lineage schema. It leaves the stack running for inspection.
 
 ## Checks
 
 ```bash
-bash scripts/check-rust.sh
+bash scripts/check-rust-docker.sh
 bash scripts/check-web.sh
 corepack pnpm --filter @urbanlens/web build
 docker compose config
-docker compose build web
+bash scripts/smoke-compose.sh
 ```
 
 The web Docker build uses the committed `.npmrc` before
 `pnpm install --frozen-lockfile`, so container installs use the same peer
 dependency settings as the lockfile.
+
+If host Rust is installed, `bash scripts/check-rust.sh` runs the same Rust
+formatting, lint, and test checks without Docker.
+
+To stop and reset the local stack after smoke validation:
+
+```bash
+docker compose down --volumes --remove-orphans
+```
+
+Optional MLIT connectivity can be checked only on a developer machine with an
+ignored local key:
+
+```bash
+bash scripts/smoke-mlit-api.sh
+```
+
+That diagnostic is intentionally excluded from CI and does not import data.
 
 ## Data Sources
 

@@ -3,6 +3,13 @@
 UrbanLens runs its local platform through Docker Compose. The required path does
 not need a local `.env`; `.env.example` only documents overrides.
 
+## Prerequisites
+
+- Docker Engine with Docker Compose.
+- Node.js 24 and pnpm 10 for host-side frontend checks.
+- Rust 1.96.0 for host-side Rust checks, or the pinned Rust Docker image for
+  equivalent local validation.
+
 ## Services
 
 - `postgres`: PostGIS-backed PostgreSQL database.
@@ -76,15 +83,10 @@ Responses include an `x-request-id` header. If the request already has `x-reques
 
 ## Local Smoke Checks
 
-After `docker compose up --build -d`, run:
+The reusable smoke script is the preferred local and CI validation path:
 
 ```bash
-docker compose ps
-curl http://localhost:8080/ready
-curl -s http://localhost:8080/graphql \
-  -H 'content-type: application/json' \
-  -d '{"query":"{ connectivity { service status databaseReachable migrationsApplied } }"}'
-curl -I http://localhost:3000/market-map
+bash scripts/smoke-compose.sh
 ```
 
 Expected results:
@@ -94,17 +96,67 @@ Expected results:
 - `/ready` returns `status: "ready"` with database and migration booleans true.
 - GraphQL `connectivity` returns `urbanlens-api`, `ready`, and true database and migration booleans.
 - `/market-map` returns HTTP 200.
+- CORS allows only the configured local web origin.
+- The six foundation tables are empty, PostGIS/pgcrypto are installed, SQLx has
+  exactly two successful migration rows, and the nullable `areas.geometry`
+  column is `MultiPolygon` SRID 4326 with its partial GiST index.
+
+The script leaves services running for inspection. Stop and reset the stack
+with:
+
+```bash
+docker compose down --volumes --remove-orphans
+```
 
 ## Frontend Checks
 
 ```bash
 bash scripts/check-web.sh
 corepack pnpm --filter @urbanlens/web build
-docker compose build web
 ```
 
 `scripts/check-web.sh` runs ESLint, Next type generation plus TypeScript, and
 Vitest. It uses `pnpm` when it is on `PATH` and falls back to `corepack pnpm`.
+
+## Rust Checks
+
+```bash
+bash scripts/check-rust-docker.sh
+```
+
+This MacBook-friendly wrapper runs the same script in the pinned Rust
+toolchain container. If host Rust is installed, run the checks directly with
+`bash scripts/check-rust.sh`.
+
+```bash
+bash scripts/check-rust.sh
+```
+
+## Optional MLIT Diagnostic
+
+The MLIT diagnostic is manual, secret-safe, and not part of normal startup or
+CI. Set `MLIT_REINFOLIB_API_KEY` in the shell or in a local ignored `.env`, then
+run:
+
+```bash
+bash scripts/smoke-mlit-api.sh
+```
+
+The script makes one bounded authenticated XIT001 request using the documented
+`Ocp-Apim-Subscription-Key` header. It prints only HTTP/status/count metadata
+and does not persist the response or modify the database.
+
+Without a key, it exits non-zero with a readable message.
+
+## CI
+
+GitHub Actions runs three jobs:
+
+- Rust formatting, Clippy, and tests via `scripts/check-rust.sh`.
+- Web lint, type check, Vitest, and production build.
+- Docker Compose smoke validation via `scripts/smoke-compose.sh`, with
+  `docker compose down --volumes --remove-orphans` registered as an always-run
+  teardown step.
 
 ## Troubleshooting
 
@@ -118,3 +170,6 @@ Vitest. It uses `pnpm` when it is on `PATH` and falls back to `corepack pnpm`.
 - If Docker reports `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`, make sure the web
   Dockerfile copies `.npmrc` before `pnpm install --frozen-lockfile` and rebuild
   with the latest `main`.
+- If `scripts/smoke-compose.sh` fails after a partial startup, inspect
+  `docker compose logs --no-color`, then reset with
+  `docker compose down --volumes --remove-orphans`.

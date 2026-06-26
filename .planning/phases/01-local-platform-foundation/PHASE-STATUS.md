@@ -8,12 +8,12 @@
 |---|---|
 | Phase | `01` |
 | Name | `Local Platform Foundation` |
-| Overall Status | `in_progress` |
+| Overall Status | `completed` |
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-24` |
-| Last Updated | `2026-06-26 15:15 +07:00` |
-| Target Completion | `TBD` |
+| Last Updated | `2026-06-26 15:50 +07:00` |
+| Target Completion | `2026-06-26` |
 | Current Branch | `main` |
 | Current Commit | `ffe6f2d` |
 | Related Plan | `PHASE-PLAN.md` |
@@ -25,7 +25,7 @@ Build a clean-clone local platform in which one root Docker Compose command star
 
 ## 2. Current Focus
 
-Slices 1, 2, 3, and 4 are complete at implementation level. Current focus moves to Slice 5: CI, smoke validation, optional MLIT diagnostic, and full Phase 01 UAT with Docker available.
+Phase 01 is complete. Slices 1 through 5 are implemented, locally validated with Docker, and GitHub Actions checked green per user confirmation on `2026-06-26`.
 
 ## 3. Definition of Done
 
@@ -38,15 +38,15 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Plan, decisions, interfaces, schema foundation, and UAT protocol are complete. |
-| Design / Architecture | In Progress | 70% | Workspace/package boundaries, environment contract, migration lifecycle, API runtime boundary, and frontend shell boundary are implemented. |
-| Backend | In Progress | 60% | Actix server, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, bounded CORS, request IDs, and API healthcheck are implemented. |
-| Database | In Progress | 70% | PostGIS service, extensions, six foundation tables, constraints, indexes, and SQLx rerun lifecycle are implemented and smoke-validated. |
-| Worker / Ingestion | In Progress | 25% | Compile-only importer crate exists; ingestion remains intentionally absent. |
-| Frontend | Implemented | 80% | App shell, root redirect, `/market-map`, empty map state, GraphQL connectivity panel, loading/error/retry states, and component tests pass. |
-| Infrastructure | In Progress | 72% | Root/infra Compose database lifecycle, API healthcheck, web Dockerfile, web service, and web image build exist; CI smoke remains. |
-| Tests | In Progress | 68% | Shared web check passes; Slice 2 database smoke, Slice 3 API/unit/image evidence, Slice 4 component tests, web image build, and local Compose success-path smoke pass; live failure/CORS and CI coverage remain. |
-| Documentation | In Progress | 67% | README, architecture, local-development docs, environment contract, and planning records are current for Slice 4 and the web Docker frozen-install fix. |
-| UAT | In Progress | 45% | Slice 1 through Slice 4 implementation evidence is recorded; full live API/web UAT remains. |
+| Design / Architecture | Complete | 100% | Workspace/package boundaries, environment contract, migration lifecycle, API runtime boundary, frontend shell boundary, and CI/smoke boundary are implemented. |
+| Backend | Complete | 100% | Actix server, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, bounded CORS, request IDs, and API healthcheck are implemented and smoke-validated. |
+| Database | Complete | 100% | PostGIS service, extensions, six foundation tables, constraints, indexes, SQLx ledger, and rerun lifecycle are implemented and smoke-validated. |
+| Worker / Ingestion | Complete for Phase 01 | 100% | Compile-only importer crate exists; ingestion remains intentionally absent until Phase 02. |
+| Frontend | Complete | 100% | App shell, root redirect, `/market-map`, empty map state, GraphQL connectivity panel, loading/error/retry states, and component tests pass. |
+| Infrastructure | Complete | 100% | Root/infra Compose, healthchecks, Dockerfiles, reusable smoke script, and GitHub Actions workflow are in place and green. |
+| Tests | Complete | 100% | Rust/web/build/Compose smoke/failure/restart/secret checks pass locally and in GitHub Actions. |
+| Documentation | Complete | 100% | README, architecture, local-development docs, environment contract, and planning records are current for Slice 5. |
+| UAT | Complete | 100% | Required UAT cases passed and GitHub Actions checked green. |
 
 ---
 
@@ -63,17 +63,20 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | 2026-06-26 | Completed Slice 4 implementation with Next.js app shell, `/market-map`, browser GraphQL connectivity proof, loading/error/retry/not-found states, web Compose service, web Dockerfile, tests, README, architecture, and local-development docs. | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/`, `infra/web.Dockerfile`, `infra/docker-compose.yml`, `README.md`, `docs/` |
 | 2026-06-26 | Fixed the web Docker frozen-install mismatch by copying `.npmrc` before `pnpm install --frozen-lockfile`; verified `docker compose build web`. | `infra/web.Dockerfile`, `README.md`, `docs/local-development.md`, `docs/architecture.md` |
 | 2026-06-26 | Verified local Compose success path: services healthy, migration complete, `/ready` ready, GraphQL `connectivity` ready, and `/market-map` HTTP 200. | `docker compose up --build -d`, `docker compose ps`, `curl` checks |
+| 2026-06-26 | Completed Slice 5 implementation with GitHub Actions, reusable Compose smoke validation, optional MLIT XIT001 diagnostic, docs, fresh/existing-volume smoke, failure/recovery checks, and local CI-equivalent validation. | `.github/workflows/ci.yml`, `scripts/smoke-compose.sh`, `scripts/smoke-mlit-api.sh`, `README.md`, `docs/`, `PHASE-UAT.md` |
+| 2026-06-26 | User confirmed GitHub Actions workflow checked green; Phase 01 closed. | `.github/workflows/ci.yml`, `PHASE-UAT.md` |
 
 ---
 
-## 6. Work In Progress
+## 6. Completed Workstreams
 
 | Item | Current State | Next Step |
 |---|---|---|
 | Slice 1 workspace foundation | Complete | Preserve the shared check scripts as the CI command boundary. |
 | Compose/database foundation | Complete | Preserve the root/infra Compose and migration lifecycle while later services are added. |
 | API foundation | Complete | Preserve `/health`, `/ready`, GraphQL `connectivity`, bounded CORS, request IDs, and API container healthcheck while adding web behavior. |
-| Frontend foundation | Complete at implementation level | Preserve the browser-visible analyst shell and connectivity proof while adding CI/Compose UAT. |
+| Frontend foundation | Complete | Preserve the browser-visible analyst shell and connectivity proof while adding product data in later phases only. |
+| Slice 5 CI/smoke/UAT | Complete | Preserve the workflow and smoke boundary while starting Phase 02. |
 
 ---
 
@@ -85,7 +88,9 @@ The phase is done when a new developer can run `docker compose up --build`, open
 4. [x] Verify the fresh-volume and migration-rerun paths before proceeding to API behavior.
 5. [x] Implement Slice 3 API configuration, SQLx pool wiring, Actix health/readiness routes, GraphQL database connectivity, bounded CORS, request IDs, and API container healthcheck.
 6. [x] Implement Slice 4 Next.js analyst shell and browser-visible GraphQL connectivity state.
-7. [ ] **Next immediate action:** Implement Slice 5 CI/smoke validation and run full Docker Compose/browser UAT.
+7. [x] Implement Slice 5 CI/smoke validation and run full Docker Compose/browser UAT locally.
+8. [x] GitHub Actions checked green.
+9. **Next immediate action:** Create/activate Phase 02 planning documents and begin importer design.
 
 ---
 
@@ -101,11 +106,12 @@ The phase is done when a new developer can run `docker compose up --build`, open
 
 | ID | Risk | Likelihood | Impact | Mitigation | Status |
 |---|---|---:|---:|---|---|
-| RSK-01 | Browser and container API URLs/origins diverge. | Medium | High | `NEXT_PUBLIC_GRAPHQL_URL` is documented as browser-facing and covered by component tests; full live browser UAT remains. | Partially mitigated |
-| RSK-02 | Compose startup races migrations or readiness. | Medium | High | Postgres health gates migration; API waits for migration success; web waits for API health and has its own route healthcheck. | Partially mitigated |
-| RSK-03 | Foundational schema weakens exact-artifact lineage. | Low | High | Enforced dataset-position identity and consistent dataset/import-run references in migration; committed constraint tests still remain. | Partially mitigated |
+| RSK-01 | Browser and container API URLs/origins diverge. | Medium | High | `NEXT_PUBLIC_GRAPHQL_URL` is documented as browser-facing, component-tested, and exercised through Compose web/API smoke. | Mitigated |
+| RSK-02 | Compose startup races migrations or readiness. | Medium | High | Postgres health gates migration; API waits for migration success; web waits for API health; reusable smoke validates the chain. | Mitigated |
+| RSK-03 | Foundational schema weakens exact-artifact lineage. | Low | High | Enforced dataset-position identity and consistent dataset/import-run references in migration; smoke asserts lineage constraints and schema state. | Mitigated |
 | RSK-04 | Host Cargo is unavailable. | High | Low | Pinned Rust 1.96 container runs the authoritative shared check successfully. | Mitigated |
-| RSK-05 | Optional MLIT diagnostic exposes the key. | Low | High | No shell tracing/header output, no CI credential, and output disclosure test. | Open |
+| RSK-05 | Optional MLIT diagnostic exposes the key. | Low | High | Diagnostic avoids shell tracing, prints only bounded metadata, is excluded from CI, and missing-key output was tested. | Mitigated |
+| RSK-06 | Remote CI may differ from local checks. | Low | Medium | Workflow uses the same committed scripts and always-run teardown; GitHub Actions checked green. | Mitigated |
 
 ### Dependencies
 
@@ -161,16 +167,20 @@ The phase is done when a new developer can run `docker compose up --build`, open
 | Frontend tests | Pass | Vitest 4.1.9: 5 files, 8 tests passed |
 | Frontend production build | Pass | Next.js 16.2.9 compiled and prerendered `/`, `/market-map`, and `/_not-found` |
 | Web Compose image build | Pass | `docker compose build web` builds `urbanlens-web:latest`; `.npmrc` is copied before `pnpm install --frozen-lockfile` so lockfile settings match inside Docker. |
-| Database/migration tests | Partial | Manual catalog and rerun smoke passed; committed migration integration tests are not yet added. |
-| Integration tests | Partial | PostGIS + migration lifecycle, API image/config, local API readiness, GraphQL connectivity, and web HTTP success pass; live failure/CORS and browser inspection remain unimplemented. |
-| Docker Compose smoke test | Partial | Success path passes locally: `postgres`, `api`, and `web` healthy; `migrate` exited; `/ready`, GraphQL `connectivity`, and `/market-map` succeed. Failure-mode and CI smoke remain. |
+| Database/migration tests | Pass for Phase 01 | Reusable smoke asserts extensions, SQLx ledger, six empty foundation tables, lineage constraints, and area spatial index; deeper insertion tests are deferred to ingestion behavior. |
+| Integration tests | Pass for Phase 01 | Fresh/existing-volume Compose smoke, API readiness/GraphQL, CORS, request IDs, web HTTP success, PostgreSQL outage, API outage, and recovery pass locally. |
+| Docker Compose smoke test | Pass | `postgres`, `api`, and `web` healthy; `migrate` exited; `/ready`, GraphQL `connectivity`, `/market-map`, CORS, request IDs, and schema assertions succeed. |
+| Reusable Compose smoke | Pass | `bash scripts/smoke-compose.sh` passes on fresh and existing volumes; asserts service health, migration exit, request IDs, CORS, API/web endpoints, SQLx ledger, extensions, empty foundation tables, lineage constraints, and area spatial index. |
+| Failure/recovery UAT | Pass | PostgreSQL outage: `/health` 200, `/ready` 503, GraphQL `not_ready`; recovery returns ready. API outage: web route 200 and API connection fails; API restart returns GraphQL ready. |
+| Optional MLIT diagnostic missing key | Pass | `env -u MLIT_REINFOLIB_API_KEY bash scripts/smoke-mlit-api.sh` exits non-zero with a clear message and no key/header value. |
+| GitHub Actions workflow | Pass | `.github/workflows/ci.yml` contains Rust, web, and Compose smoke jobs plus failure logs and always-run teardown; user confirmed workflow checked green. |
 
 ### UAT Status
 
 | Field | Value |
 |---|---|
-| UAT Readiness | `not_ready` |
-| UAT Result | `in_progress — Slice 1, Slice 2, and Slice 3 implementation evidence` |
+| UAT Readiness | `complete` |
+| UAT Result | `passed` |
 | Blocking Defects | `0` |
 | Required Cases | `8` |
 | Optional Cases | `1` |
@@ -182,7 +192,7 @@ The phase is done when a new developer can run `docker compose up --build`, open
 
 ### Last Meaningful Change
 
-Slice 4 was implemented and validated at frontend/package scope: `/` redirects to `/market-map`, the shell and empty map state render without fake data, the browser-side connectivity panel uses TanStack Query and `graphql-request`, loading/degraded/error/retry states are tested, and Compose includes a web service gated on API health.
+Slice 5 was implemented and validated locally: GitHub Actions workflow, reusable Compose smoke, optional MLIT diagnostic, fresh/existing-volume Docker UAT, PostgreSQL/API failure and recovery checks, Rust/web/build checks, and documentation/planning updates.
 
 ### Current Working Assumption
 
@@ -204,21 +214,21 @@ sed -n '1,260p' .planning/phases/01-local-platform-foundation/PHASE-PLAN.md
 
 ### Exact Next Technical Step
 
-Implement Slice 5: add CI and Compose smoke validation, add the optional MLIT diagnostic, and run the full Phase 01 UAT with Docker available.
+Create/activate Phase 02 planning documents and begin ingestion and canonical data pipeline design.
 
 ---
 
 ## 12. Exit Checklist
 
-- [ ] All in-scope phase requirements are complete.
-- [ ] Required automated tests and CI jobs pass.
-- [ ] Required documentation is complete.
-- [ ] All eight required UAT cases have been executed.
-- [ ] UAT result is `passed` or `passed_with_accepted_exceptions`.
-- [ ] No critical or high defects remain open.
-- [ ] Handoff notes are completed in `PHASE-PLAN.md`.
-- [ ] `.planning/STATE.md` is updated to Phase 02.
-- [ ] Overall status is `completed` or `completed_with_exceptions`.
+- [x] All in-scope phase requirements are complete.
+- [x] Required automated tests and CI jobs pass.
+- [x] Required documentation is complete.
+- [x] All eight required UAT cases have been executed locally.
+- [x] UAT result is `passed`.
+- [x] No critical or high defects remain open.
+- [x] Handoff notes are completed in `PHASE-PLAN.md`.
+- [x] `.planning/STATE.md` is updated with Phase 02 as the next resume action.
+- [x] Overall status is `completed`.
 
 ---
 
@@ -233,3 +243,4 @@ Implement Slice 5: add CI and Compose smoke validation, add the optional MLIT di
 | 2026-06-26 14:20 +07:00 | `in_progress` | Slice 4 completed at implementation level; Next.js analyst shell, `/market-map`, browser GraphQL connectivity panel, loading/error/retry/not-found states, web Dockerfile, Compose web service, README, architecture, local-development docs, lint, typecheck, tests, and web production build pass. Initial Docker validation was deferred and later superseded by the 15:00 and 15:15 evidence below. |
 | 2026-06-26 15:00 +07:00 | `in_progress` | Documentation synchronized after web Docker fix; `docker compose build web` now passes with `.npmrc` copied into the build context before frozen pnpm install. |
 | 2026-06-26 15:15 +07:00 | `in_progress` | Local Compose success-path smoke passed: all runtime services healthy, migration completed, API readiness and GraphQL connectivity report ready, and `/market-map` returns HTTP 200. |
+| 2026-06-26 15:50 +07:00 | `completed` | Slice 5 local UAT completed; user confirmed GitHub Actions workflow checked green; Phase 01 closed. |

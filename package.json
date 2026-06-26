@@ -10,6 +10,7 @@
   "scripts": {
     "check": "bash scripts/check-all.sh",
     "check:rust": "bash scripts/check-rust.sh",
+    "check:rust:docker": "bash scripts/check-rust-docker.sh",
     "check:web": "bash scripts/check-web.sh",
     "dev:web": "pnpm --filter @urbanlens/web dev",
     "lint": "pnpm --filter @urbanlens/web lint",

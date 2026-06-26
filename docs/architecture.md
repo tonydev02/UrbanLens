@@ -76,6 +76,20 @@ fixtures or expose raw payload JSON through GraphQL.
 - The market map shell avoids fake data and fake map points until official data,
   location precision, and spatial queries are implemented.
 
+## CI and Smoke Validation
+
+GitHub Actions mirrors the committed developer commands:
+
+- `scripts/check-rust.sh` for Rust formatting, Clippy, and tests.
+- `scripts/check-web.sh` plus a production web build for frontend validation.
+- `scripts/smoke-compose.sh` for Compose startup, service health, migration
+  success, HTTP/GraphQL contracts, CORS behavior, and PostGIS schema assertions.
+
+The Compose smoke job always runs `docker compose down --volumes --remove-orphans`
+after validation so CI does not leave containers or volumes behind. The optional
+MLIT XIT001 diagnostic is deliberately local-only and excluded from CI because
+it requires a developer-owned key and an external service.
+
 ## Scaling Considerations
 
 Later phases should keep geographic filtering and aggregation inside PostGIS,

@@ -18,6 +18,36 @@ This repository should be treated as a production-oriented portfolio project, no
 
 ---
 
+# Current Local Context
+
+This section is intentionally operational. Read it after any context refresh
+before choosing implementation direction.
+
+* Phase 01 — Local Platform Foundation is closed. Do not redo CI/Compose setup
+  unless the user explicitly asks.
+* The active next phase is Phase 02 — Ingestion and Canonical Data Pipeline.
+  First action: create `.planning/phases/02-ingestion-and-canonical-data-pipeline/`
+  from the `XX-template` files, then design the MLIT fixture importer around
+  the Phase 01 lineage schema.
+* Always read `.planning/STATE.md` first, then the active phase docs. For Phase
+  02, also read `docs/data-sources.md`, `docs/data-model.md`,
+  `docs/product-brief.md`, and the Phase 01 handoff/status before editing.
+* Main environment does not currently have host Cargo/Rust
+  installed. Use `bash scripts/check-rust-docker.sh` for Rust checks here, or
+  simply run `corepack pnpm check`, which falls back to Docker Rust when
+  `cargo` is missing. Use `bash scripts/check-rust.sh` only when host Cargo is
+  actually available.
+* `bash scripts/smoke-compose.sh` is the canonical local/CI Compose smoke test.
+  It leaves the stack running for inspection; clean it with
+  `docker compose down --volumes --remove-orphans` when done.
+* `scripts/smoke-mlit-api.sh` is optional, local-only, and secret-safe. It must
+  never run in CI and must never print or persist the MLIT key or full response.
+* Do not commit generated output such as `target/`, `apps/web/.next/`, logs,
+  downloaded datasets, or local `.env` files. Keeping `node_modules/` locally is
+  acceptable for this MacBook workflow, but it remains ignored.
+
+---
+
 # Product Principles
 
 ## Build analyst tools, not a property marketplace

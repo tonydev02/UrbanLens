@@ -10,20 +10,19 @@
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
 | Current Milestone | `MVP ingestion foundation` |
 | Current Phase | `02 — Ingestion and Canonical Data Pipeline` |
-| Current Phase Status | `not_started` |
+| Current Phase Status | `ready_for_implementation` |
 | Project Health | `green` |
-| Last Updated | `2026-06-26` |
+| Last Updated | `2026-06-27` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `ffe6f2d` |
+| Latest Commit | `f72e09e` |
 
 ---
 
 ## 1. Current Objective
 
-Create the Phase 02 ingestion and canonical data pipeline plan, then implement
-the first official MLIT fixture import without violating Phase 0 source,
-lineage, metric, or location-precision decisions.
+Implement the first official MLIT fixture import in small slices without
+violating Phase 0 source, lineage, metric, or location-precision decisions.
 
 ---
 
@@ -33,10 +32,10 @@ lineage, metric, or location-precision decisions.
 |---|---|
 | Active Phase | `02 — Ingestion and Canonical Data Pipeline` |
 | Phase Folder | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
-| Plan | `to be created from .planning/phases/XX-template/PHASE-PLAN.md` |
-| Status | `to be created from .planning/phases/XX-template/PHASE-STATUS.md` |
-| UAT | `to be created from .planning/phases/XX-template/PHASE-UAT.md` |
-| Phase Status | `not_started` |
+| Plan | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-PLAN.md` |
+| Status | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-STATUS.md` |
+| UAT | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-UAT.md` |
+| Phase Status | `ready_for_implementation` |
 | Phase Health | `green` |
 
 ### Why This Is the Active Phase
@@ -54,18 +53,18 @@ canonical persistence.
 > **Do this first when resuming work:**
 
 ```text
-Create Phase 02 planning documents from the template, then design the MLIT fixture importer around data_sources, datasets, import_runs, raw_records, validation issues, and normalized transaction observations.
+Begin Slice 1 by implementing pure MLIT CSV parsing, normalization structs, validation issue codes, and fixture tests before any database writes.
 ```
 
 ### Resume Sequence
 
 1. Read Phase 00 source/product docs, Phase 01 handoff, and accepted ADRs.
 2. Confirm the branch, working tree, and latest commit.
-3. Create `.planning/phases/02-ingestion-and-canonical-data-pipeline/` from the template files.
-4. Define the smallest useful ingestion scope around the committed MLIT transaction fixtures.
+3. Read the Phase 02 plan, status, and UAT files.
+4. Confirm the smallest useful ingestion scope remains the committed MLIT transaction fixtures.
 5. Preserve raw payloads and exact source-artifact lineage.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
-7. Add tests for parsing, validation, idempotency, and persistence before expanding the importer.
+7. Add tests for parsing and validation before database writes; add idempotency and persistence tests before expanding the importer.
 
 ---
 
@@ -77,7 +76,7 @@ Create Phase 02 planning documents from the template, then design the MLIT fixtu
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
 | Backend API | Implemented | Phase 01 | Actix API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API image healthcheck are in place. |
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
-| Ingestion Pipeline | Next | Phase 02 | Compile-only importer crate exists; production ingestion remains intentionally absent until Phase 02. |
+| Ingestion Pipeline | Ready | Phase 02 | Phase 2 planning docs are created; compile-only importer crate exists and real ingestion starts with parser/normalizer tests. |
 | Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
 | Testing | Complete | Phase 01 | Rust/web/build checks, fresh/existing-volume Compose smoke, failure/recovery UAT, secret checks, and GitHub Actions pass. |
 | Infrastructure / CI | Complete | Phase 01 | Root/infra Compose starts PostGIS, migrate, API, and web; GitHub Actions workflow and reusable smoke script are green. |
@@ -91,7 +90,7 @@ Create Phase 02 planning documents from the template, then design the MLIT fixtu
 |---:|---|---|---|---|
 | 00 | Product and Data Discovery | Completed | Green | First source, fixtures, workflow, model, access, and ADRs passed UAT |
 | 01 | Local Platform Foundation | Completed | Green | Web, API, and PostGIS run locally; CI checks are green |
-| 02 | Ingestion and Canonical Data Pipeline | Not Started | Green | Official data imports safely and repeatedly |
+| 02 | Ingestion and Canonical Data Pipeline | Ready for Implementation | Green | Official data imports safely and repeatedly |
 | 03 | Spatial Data Model and Query Engine | Not Started | Green | Viewport and area filtering work in PostGIS |
 | 04 | Analyst Workspace v0.1 | Not Started | Green | Market map works with filters and source details |
 | 05 | Market Metrics and Area Comparison | Not Started | Green | Two areas can be compared transparently |
@@ -105,6 +104,7 @@ Create Phase 02 planning documents from the template, then design the MLIT fixtu
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-06-27 | Created Phase 02 plan/status/UAT documents with six small implementation slices for the MLIT fixture importer. | 02 | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
 | 2026-06-26 | User confirmed GitHub Actions checked green; Phase 01 closed and project resume point moved to Phase 02. | 01 | `.github/workflows/ci.yml`, `.planning/phases/01-local-platform-foundation/`, `.planning/STATE.md` |
 | 2026-06-26 | Completed Slice 5: GitHub Actions workflow, reusable Compose smoke, optional MLIT XIT001 diagnostic, fresh/existing-volume Docker UAT, failure/recovery checks, Rust/web/build checks, and documentation updates. | 01 | `.github/workflows/ci.yml`, `scripts/smoke-compose.sh`, `scripts/smoke-mlit-api.sh`, `PHASE-UAT.md` |
 | 2026-06-26 | Completed Slice 4 implementation: Next.js analyst shell, `/market-map`, root redirect, QueryClient/GraphQL browser connectivity panel, loading/error/retry/not-found states, web Compose service, and README/architecture/local-development updates. | 01 | `apps/web/src/app/`, `apps/web/src/components/`, `apps/web/src/lib/`, `infra/web.Dockerfile`, `infra/docker-compose.yml`, `docs/`, `README.md` |

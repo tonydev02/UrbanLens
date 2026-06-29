@@ -23,8 +23,8 @@
 
 Implement the first official MLIT fixture import in small slices without
 violating Phase 0 source, lineage, metric, or location-precision decisions.
-Slice 1 is complete; the active next step is the canonical schema/database
-contract slice.
+Slices 1 and 2 are complete; the active next step is the persistence repository
+and idempotent database-write slice.
 
 ---
 
@@ -55,7 +55,7 @@ canonical persistence.
 > **Do this first when resuming work:**
 
 ```text
-Begin Slice 2 by adding canonical transaction/location migrations and database contract tests around the Slice 1 normalized fields.
+Begin Slice 3 by adding persistence repositories for data-source/dataset upsert, import-run lifecycle, raw-record upsert, validation issue insert, and observation/location upsert.
 ```
 
 ### Resume Sequence
@@ -66,7 +66,7 @@ Begin Slice 2 by adding canonical transaction/location migrations and database c
 4. Confirm the smallest useful ingestion scope remains the committed MLIT transaction fixtures.
 5. Preserve raw payloads and exact source-artifact lineage.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
-7. Preserve the completed Slice 1 parser/normalizer boundary; add schema tests before persistence writes.
+7. Preserve the completed Slice 1 parser/normalizer boundary and Slice 2 schema constraints while adding persistence writes.
 
 ---
 
@@ -78,7 +78,7 @@ Begin Slice 2 by adding canonical transaction/location migrations and database c
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
 | Backend API | Implemented | Phase 01 | Actix API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API image healthcheck are in place. |
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
-| Ingestion Pipeline | In Progress | Phase 02 | Slice 1 parser/normalizer is complete with fixture tests; Slice 2 schema/database contracts are next. |
+| Ingestion Pipeline | In Progress | Phase 02 | Slice 1 parser/normalizer and Slice 2 schema/database contracts are complete; Slice 3 persistence repositories are next. |
 | Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
 | Testing | Complete | Phase 01 | Rust/web/build checks, fresh/existing-volume Compose smoke, failure/recovery UAT, secret checks, and GitHub Actions pass. |
 | Infrastructure / CI | Complete | Phase 01 | Root/infra Compose starts PostGIS, migrate, API, and web; GitHub Actions workflow and reusable smoke script are green. |
@@ -106,6 +106,7 @@ Begin Slice 2 by adding canonical transaction/location migrations and database c
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-06-29 | Completed Phase 02 Slice 2: canonical transaction/location schema, observation-level validation issue link, lineage/idempotency constraints, precision/geometry constraints, and fresh/existing-volume Compose schema contract validation. | 02 | `apps/api/migrations/202606290001_create_transaction_observation_schema.sql`, `scripts/smoke-compose.sh`, `docs/data-model.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 1: CP932 MLIT CSV parser, source-row/raw-value preservation, normalization structs, validation issue codes, and six importer tests over all 666 committed fixture rows and edge cases. | 02 | `workers/importer/src/mlit.rs`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-27 | Created Phase 02 plan/status/UAT documents with six small implementation slices for the MLIT fixture importer. | 02 | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
 | 2026-06-26 | User confirmed GitHub Actions checked green; Phase 01 closed and project resume point moved to Phase 02. | 01 | `.github/workflows/ci.yml`, `.planning/phases/01-local-platform-foundation/`, `.planning/STATE.md` |

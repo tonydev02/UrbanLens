@@ -221,16 +221,25 @@ Add the minimum physical schema needed to persist normalized observations with l
 
 **Tasks**
 
-- [ ] Add SQLx migrations for `transaction_observations` and `transaction_location_contexts`.
-- [ ] Add constraints for lineage, validation state, positive numeric fields, quarter format, location precision, and geometry/precision consistency.
-- [ ] Add uniqueness for idempotent observation upsert by source-record hash or raw-record lineage.
-- [ ] Add indexes for import-run lookup, raw-record lookup, ward/period filtering, and future spatial filtering.
-- [ ] Add migration/schema tests or smoke assertions.
+- [x] Add SQLx migrations for `transaction_observations` and `transaction_location_contexts`.
+- [x] Add constraints for lineage, validation state, positive numeric fields, quarter format, location precision, and geometry/precision consistency.
+- [x] Add uniqueness for idempotent observation upsert by source-record hash or raw-record lineage.
+- [x] Add indexes for import-run lookup, raw-record lookup, ward/period filtering, and future spatial filtering.
+- [x] Add migration/schema tests or smoke assertions.
 
 **Expected Evidence**
 
-- [ ] Fresh and existing databases migrate successfully.
-- [ ] Schema checks prove location cannot be stored as exact when the precision is `unknown`, and duplicates are constrained.
+- [x] Fresh and existing databases migrate successfully.
+- [x] Schema checks prove location cannot be stored as exact when the precision is `unknown`, and duplicates are constrained.
+
+**Completion Notes — 2026-06-29**
+
+- Added migration `202606290001_create_transaction_observation_schema.sql`.
+- Created `transaction_observations` with required raw/import/dataset lineage, governed asset/price/validation fields, year/quarter period, explicit unit-bearing numeric fields, station/ward/source context fields, and normalization version.
+- Created `transaction_location_contexts` with mandatory `location_precision`, nullable SRID 4326 geometry, a one-to-one observation link, and precision/geometry consistency checks.
+- Added optional `validation_issues.transaction_observation_id` so warning issues can later link to normalized observations without breaking raw-record/import-run issue scope.
+- Anchored observation idempotency in raw-record lineage: one observation per raw record. `source_record_hash` remains indexed evidence rather than a uniqueness key, preserving distinct identical rows at different source positions.
+- Extended `scripts/smoke-compose.sh` to expect three successful migrations, verify the new tables/indexes/geometry metadata, reject geometry for `unknown` precision, and reject duplicate observations for one raw record.
 
 ---
 
@@ -399,14 +408,14 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### Implementation Starting Point
 
-Slice 1 is complete. Resume with Slice 2 by designing the canonical transaction/location migrations around the implemented parser/normalizer output. Keep database writes separate from the schema-contract tests until the constraints are clear.
+Slices 1 and 2 are complete. Resume with Slice 3 by adding persistence repositories around the parser output and canonical schema. Keep the first repository slice focused on data-source/dataset upsert, import-run lifecycle, raw-record upsert, validation issue insert, and observation/location upsert.
 
 ### Open Questions to Resolve During Slice 2
 
 - Should the Cargo package be renamed from `urbanlens-importer` to `importer` to match the requested command, or should docs consistently use the existing package name?
 - Should `fixtures/mlit/` be a root-level stable wrapper, a symlink-like copied fixture location, or should the existing `workers/importer/fixtures/transactions/` remain canonical?
-- Which fields belong directly on `transaction_observations` versus `transaction_location_contexts` for the first migration?
-- Should validation issue storage gain an optional `transaction_observation_id`, or should Slice 2 keep validation issues scoped to import runs/raw records until persistence exists?
+- Resolved during Slice 2: normalized transaction facts, source context labels, period, units, and raw/import/dataset lineage belong on `transaction_observations`; precision and geometry belong on `transaction_location_contexts`.
+- Resolved during Slice 2: validation issue storage gains nullable `transaction_observation_id` while preserving existing import-run/raw-record scope.
 
 ### Do Not Reopen Without New Evidence
 

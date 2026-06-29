@@ -7,7 +7,8 @@ analyst-facing market exploration rather than property marketplace workflows.
 ## Current MVP Foundation
 
 - Rust/Actix GraphQL API with `/health`, `/ready`, request IDs, and bounded CORS.
-- PostgreSQL/PostGIS database with SQLx migrations for the lineage foundation.
+- PostgreSQL/PostGIS database with SQLx migrations for lineage plus canonical
+  transaction/location schema contracts.
 - Next.js analyst shell at `/market-map`.
 - Browser-visible GraphQL `connectivity` proof showing API, PostgreSQL, and
   migration readiness.
@@ -59,7 +60,8 @@ bash scripts/smoke-compose.sh
 The smoke script builds and starts the stack, checks service health, verifies
 `migrate` exits successfully, calls `/health`, `/ready`, GraphQL
 `connectivity`, CORS preflights, `/market-map`, and inspects the PostGIS
-lineage schema. It leaves the stack running for inspection.
+lineage and transaction schema contracts. It leaves the stack running for
+inspection.
 
 ## Checks
 
@@ -101,7 +103,7 @@ license notes, retrieval method, and limitations are documented in
 
 ## Known Limitations
 
-- No transaction observations are imported yet.
+- Transaction observation tables exist, but no fixture rows are imported yet.
 - No live map library or spatial product query is implemented yet.
 - Area metrics, provenance drawers, saved searches, and import operations are
   planned for later MVP phases.

@@ -2,7 +2,10 @@
 
 ## Current Scope
 
-Phase 02 Slice 1 implements pure MLIT transaction CSV parsing and normalization. It does not write to PostgreSQL, create import runs, upsert raw records, or expose GraphQL inspection yet.
+Phase 02 has completed the pure MLIT transaction CSV parser/normalizer and the
+first canonical PostgreSQL schema for normalized observations. It does not yet
+write fixture rows to PostgreSQL, create import runs from the CLI, upsert raw
+records, or expose GraphQL inspection.
 
 The parser currently targets the committed official-source fixtures under:
 
@@ -68,6 +71,29 @@ bash scripts/check-rust-docker.sh
 
 Latest Slice 1 evidence: Docker-backed formatting, clippy, Rust tests, and doctests pass on `2026-06-29`. The importer crate has six tests covering all committed fixtures plus edge cases for invalid values, unknown asset labels, bounded display values, and rejection behavior.
 
+Slice 2 adds migration `202606290001_create_transaction_observation_schema.sql`
+with:
+
+- `transaction_observations` linked to raw records, import runs, and datasets;
+- `transaction_location_contexts` with explicit `location_precision` and SRID
+  4326 geometry;
+- an optional `validation_issues.transaction_observation_id` link for warning
+  issues that can be tied to normalized observations;
+- constraints for lineage, valid/warning observation status, asset type, price
+  category, quarter format, positive money values, non-negative areas, Tokyo
+  municipality codes, and location precision/geometry consistency;
+- indexes for import-run lookup, raw-record lookup, ward/period filtering,
+  asset/period filtering, hash lookup, validation issue lookup, and future
+  spatial filtering.
+
+The Compose smoke script is the schema contract check for this slice. It
+verifies the new migration ledger, table/index/geometry metadata, rejects
+`unknown` location precision with a geometry value, and rejects duplicate
+observations for one raw record.
+
 ## Next Slice
 
-Slice 2 should add canonical transaction/location migrations and schema contract tests around the fields normalized here. Persistence, idempotent import counters, CLI commands, and GraphQL inspection remain intentionally deferred.
+Slice 3 should add persistence repositories for data source/dataset upsert,
+import-run lifecycle, raw-record upsert, validation issue insert, and
+observation/location upsert. CLI commands, idempotent import counters, and
+GraphQL inspection remain intentionally deferred.

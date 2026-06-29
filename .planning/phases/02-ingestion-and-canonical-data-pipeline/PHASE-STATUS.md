@@ -12,10 +12,10 @@
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-27` |
-| Last Updated | `2026-06-29 00:00 +09:00` |
+| Last Updated | `2026-06-29 12:00 +09:00` |
 | Target Completion | `TBD` |
 | Current Branch | `main` |
-| Current Commit | `f72e09e` |
+| Current Commit | `eea724f` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related UAT | `PHASE-UAT.md` |
 
@@ -54,7 +54,7 @@ Build the first real ingestion path for the MLIT transaction fixture: preserve r
 
 ## 2. Current Focus
 
-Slice 1 is complete. The importer now has pure MLIT CSV parsing and normalization rules with fixture and edge-case tests. The next work is Slice 2 canonical schema and database contracts.
+Slices 1 and 2 are complete. The importer has pure MLIT CSV parsing/normalization rules plus canonical transaction/location schema contracts. The next work is Slice 3 persistence repositories and idempotent database writes.
 
 ## 3. Definition of Done
 
@@ -67,13 +67,13 @@ Phase 2 is done when `./scripts/import-fixture.sh` imports the committed MLIT fi
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Phase 2 plan/status/UAT are created from the template and ready for implementation. |
-| Design / Architecture | In Progress | 70% | Parser/normalization boundary is implemented; schema details remain for Slice 2. |
+| Design / Architecture | In Progress | 80% | Parser/normalization boundary and canonical observation/location schema are implemented; persistence boundaries remain for Slice 3. |
 | Backend | Not Started | 0% | GraphQL inspection queries are planned but not implemented. |
-| Database | Not Started | 0% | Canonical transaction/location migrations are planned but not implemented. |
-| Worker / Ingestion | In Progress | 20% | Slice 1 parser/normalizer is implemented; no database writes or CLI import command yet. |
+| Database | In Progress | 35% | Canonical transaction/location migrations and schema contract smoke assertions are implemented; repository writes remain. |
+| Worker / Ingestion | In Progress | 30% | Slice 1 parser/normalizer is implemented; no database writes or CLI import command yet. |
 | Frontend | Not Started | 0% | No Phase 2 product UI planned beyond existing shell. |
-| Tests | In Progress | 15% | Importer parser/normalization tests pass; persistence, CLI, GraphQL, and UAT tests remain. |
-| Documentation | In Progress | 30% | Planning docs and initial importer parser documentation are current for Slice 1. |
+| Tests | In Progress | 25% | Importer parser/normalization tests pass; schema contracts are in Compose smoke; persistence, CLI, GraphQL, and UAT tests remain. |
+| Documentation | In Progress | 40% | Importer, data model, local development, architecture, README, and planning docs are current for Slice 2. |
 | UAT | Not Started | 0% | UAT protocol drafted; no cases run. |
 
 ---
@@ -84,6 +84,7 @@ Record outcomes, not just activity.
 
 | Date | Completed Outcome | Evidence / Link |
 |---|---|---|
+| 2026-06-29 | Completed Slice 2: canonical transaction/location migrations, observation-level validation issue link, lineage/idempotency constraints, precision/geometry constraints, and Compose schema contract assertions. | `apps/api/migrations/202606290001_create_transaction_observation_schema.sql`, `scripts/smoke-compose.sh`, `docs/data-model.md`, `docs/importer.md` |
 | 2026-06-29 | Completed Slice 1: pure MLIT CSV parser/normalizer, validation issue codes, CP932 fixture parsing, raw string preservation, and edge-case tests before database writes. | `workers/importer/src/mlit.rs`, `workers/importer/src/lib.rs`, `docs/importer.md` |
 | 2026-06-27 | Created the Phase 2 planning folder and drafted plan/status/UAT documents from the template, aligned with Phase 00 source/model decisions and Phase 01 handoff. | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
 
@@ -93,7 +94,8 @@ Record outcomes, not just activity.
 
 | Item | Current State | Next Step |
 |---|---|---|
-| Slice 1 parser and normalization | Complete | Use the parser boundary as the input to Slice 2 schema design. |
+| Slice 1 parser and normalization | Complete | Use the parser boundary as the input to Slice 3 persistence repositories. |
+| Slice 2 canonical schema and database contracts | Complete | Use the schema constraints as the target for repository upserts. |
 | Phase 2 planning | Complete | Use the plan as the implementation guide, updating it if later slices reveal new source constraints. |
 | Importer package command naming | Open question | Decide whether to keep `urbanlens-importer` or rename/alias to `importer`. |
 | Fixture path deliverable | Open question | Decide whether `fixtures/mlit/` becomes a wrapper/copy path or whether existing importer fixtures remain canonical. |
@@ -104,8 +106,8 @@ Record outcomes, not just activity.
 
 Keep this short. The first action must be the exact action to take when work resumes.
 
-1. [ ] **Next immediate action:** Begin Slice 2 by designing and adding canonical transaction/location migrations around the Slice 1 normalized fields.
-2. [ ] Decide whether validation issue storage needs an observation-level foreign key or can remain raw-record/import-run scoped for the first persistence slice.
+1. [ ] **Next immediate action:** Begin Slice 3 by adding persistence repositories for data-source/dataset upsert, import-run lifecycle, raw-record upsert, validation issue insert, and observation/location upsert.
+2. [x] Decide whether validation issue storage needs an observation-level foreign key or can remain raw-record/import-run scoped for the first persistence slice.
 3. [ ] Decide and document importer package naming before publishing the first command examples.
 
 ---
@@ -148,6 +150,8 @@ Keep this short. The first action must be the exact action to take when work res
 | 2026-06-27 | Make fixture import the required Phase 2 path; keep live MLIT API ingestion deferred. | The committed official-source fixture is enough to prove parsing, validation, lineage, persistence, and idempotency without external availability or secrets. | `docs/data-sources.md`, ADR-003 |
 | 2026-06-27 | Keep CSV fixture observations at `location_precision=unknown`. | CSV rows do not include defensible observation geometry and must not be guessed onto XPT001 station points. | ADR-004 |
 | 2026-06-27 | Split implementation into six small slices: parser, schema, persistence, CLI, GraphQL, docs/UAT. | Each slice teaches one ingestion concept and keeps review/learning loops small. | `PHASE-PLAN.md` |
+| 2026-06-29 | Keep observation idempotency anchored in raw-record lineage and treat `source_record_hash` as indexed evidence, not a uniqueness key. | Prevents distinct identical source rows at different ordinals from being collapsed. | `docs/data-model.md`, ADR-003 |
+| 2026-06-29 | Add nullable `validation_issues.transaction_observation_id`. | Warning issues can link to normalized observations while rejected rows remain raw-record/import-run scoped. | `PHASE-PLAN.md` |
 
 ### Changes From Original Plan
 
@@ -167,11 +171,12 @@ Keep this short. The first action must be the exact action to take when work res
 | Rust formatting | Pass | `bash scripts/check-rust-docker.sh` on `2026-06-29`. |
 | Rust lint | Pass | Docker-backed clippy workspace/all-target/all-feature check with warnings denied on `2026-06-29`. |
 | Rust tests | Pass | Docker-backed Rust tests pass: API 4 tests, importer 6 parser/normalization tests, workspace doctests on `2026-06-29`. |
-| TypeScript lint | Not Run | Planning-only change. |
-| TypeScript type check | Not Run | Planning-only change. |
-| Frontend tests | Not Run | Planning-only change. |
-| Integration tests | Not Run | Planning-only change. |
-| Docker Compose smoke test | Not Run | Planning-only change. |
+| TypeScript lint | Not Run | No frontend code changed in Slice 2. |
+| TypeScript type check | Not Run | No frontend code changed in Slice 2. |
+| Frontend tests | Not Run | No frontend code changed in Slice 2. |
+| Integration tests | Not Run | Persistence, CLI, and GraphQL integration tests remain for later slices. |
+| Docker Compose config | Pass | `docker compose config` renders after Slice 2 schema/smoke updates. |
+| Docker Compose smoke test | Pass | `bash scripts/smoke-compose.sh` passes on existing and fresh volumes on `2026-06-29`; asserts three migrations, new transaction tables, precision/geometry constraints, and duplicate-observation rejection. |
 
 ### UAT Status
 
@@ -188,11 +193,11 @@ Keep this short. The first action must be the exact action to take when work res
 
 ### Last Meaningful Change
 
-Slice 1 parser and normalization rules were implemented and validated against the committed MLIT fixtures.
+Slice 2 canonical transaction/location schema and Compose schema contract checks were implemented.
 
 ### Current Working Assumption
 
-The first importer should use the committed MLIT CSV fixtures and local PostgreSQL/PostGIS. It should not require an MLIT API key, live external requests, XPT001 geometry, or any property/station identity inference. Slice 1 keeps CSV observations spatially `unknown` and does not write to the database.
+The first importer should use the committed MLIT CSV fixtures and local PostgreSQL/PostGIS. It should not require an MLIT API key, live external requests, XPT001 geometry, or any property/station identity inference. Slices 1 and 2 keep CSV observations spatially `unknown`; Slice 3 should write only through the lineage-preserving schema.
 
 ### Important Files
 
@@ -203,6 +208,8 @@ docs/data-sources.md — MLIT fixture/source profile and source limitations
 docs/data-model.md — conceptual lineage, idempotency, validation, and location-precision rules
 workers/importer/fixtures/transactions/README.md — committed fixture acquisition, profile, and checksums
 workers/importer/src/mlit.rs — pure MLIT parser, normalization structs, validation issues, and Slice 1 tests
+apps/api/migrations/202606290001_create_transaction_observation_schema.sql — canonical observation/location schema
+scripts/smoke-compose.sh — Compose and schema contract smoke validation
 workers/importer/src/main.rs — current compile-only importer entrypoint
 ```
 
@@ -214,7 +221,7 @@ sed -n '1,260p' .planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-
 
 ### Exact Next Technical Step
 
-Begin Slice 2: add canonical transaction/location migrations and database contract tests around the Slice 1 normalized fields.
+Begin Slice 3: add persistence repositories and idempotent upsert behavior around the Slice 1 parser output and Slice 2 schema.
 
 ---
 
@@ -240,3 +247,4 @@ Append one concise row whenever the phase changes meaningfully.
 |---|---|---|
 | 2026-06-27 13:00 +07:00 | `ready_for_implementation` | Phase 2 planning docs created from template with small implementation slices. |
 | 2026-06-29 00:00 +09:00 | `in_progress` | Slice 1 parser/normalizer completed; Docker-backed Rust formatting, clippy, and tests pass. |
+| 2026-06-29 12:00 +09:00 | `in_progress` | Slice 2 canonical transaction/location schema and Compose schema contract assertions implemented; focus moves to Slice 3 persistence repositories. |

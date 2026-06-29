@@ -246,3 +246,33 @@ Later implementation may expose `high`, `medium`, `low`, or `unknown`, but it mu
 - Raw payload storage is not exposed in normal product queries.
 - All list queries are bounded by pagination or strict limits.
 - Physical schema changes require migrations and tests; they must preserve this conceptual boundary or update documentation/ADR explicitly.
+
+## Current Physical Schema
+
+Phase 02 Slice 2 adds the first physical observation schema while keeping
+database writes deferred to Slice 3:
+
+- `transaction_observations` stores one normalized historical observation per
+  originating raw record.
+- `transaction_location_contexts` stores the observation's explicit
+  `location_precision` and optional SRID 4326 geometry.
+- `validation_issues.transaction_observation_id` can link warning issues to a
+  normalized observation when persistence is added.
+
+Important constraints:
+
+- each observation references one `(raw_record_id, import_run_id, dataset_id)`
+  lineage tuple;
+- each raw record can produce at most one normalized observation;
+- asset type, price category, validation state, Tokyo municipality code, and
+  quarter values are constrained;
+- money values must be positive when present, and area values must be
+  non-negative when present;
+- `unknown` location precision requires `location IS NULL`;
+- point precision values require point geometry, and ward precision requires
+  polygon or multipolygon geometry.
+
+The schema intentionally does not make `source_record_hash` globally unique.
+Exact-artifact idempotency remains anchored in raw-record lineage
+`(dataset_id, source_position)`, so two identical source payloads at different
+row ordinals are still allowed to become distinct observations.

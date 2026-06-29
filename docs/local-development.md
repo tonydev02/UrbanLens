@@ -97,9 +97,12 @@ Expected results:
 - GraphQL `connectivity` returns `urbanlens-api`, `ready`, and true database and migration booleans.
 - `/market-map` returns HTTP 200.
 - CORS allows only the configured local web origin.
-- The six foundation tables are empty, PostGIS/pgcrypto are installed, SQLx has
-  exactly two successful migration rows, and the nullable `areas.geometry`
-  column is `MultiPolygon` SRID 4326 with its partial GiST index.
+- The lineage and transaction tables are empty, PostGIS/pgcrypto are installed,
+  SQLx has three successful migration rows, `areas.geometry` is `MultiPolygon`
+  SRID 4326, and transaction location geometry has SRID 4326 with a partial
+  GiST index.
+- Transaction schema contracts reject geometry on `unknown` location precision
+  and reject duplicate normalized observations for one raw record.
 
 The script leaves services running for inspection. Stop and reset the stack
 with:

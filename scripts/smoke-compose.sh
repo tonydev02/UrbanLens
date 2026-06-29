@@ -169,11 +169,209 @@ log "unconfigured CORS origin is not granted"
 
 log "checking database schema foundation"
 assert_psql_true "SELECT COUNT(*) = 2 FROM pg_extension WHERE extname IN ('postgis', 'pgcrypto');" "required extensions exist"
-assert_psql_true "SELECT COUNT(*) FILTER (WHERE success) = 2 AND COUNT(*) FILTER (WHERE NOT success) = 0 FROM _sqlx_migrations;" "SQLx migration ledger is successful"
-assert_psql_true "SELECT COUNT(*) = 6 FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('data_sources', 'datasets', 'import_runs', 'raw_records', 'validation_issues', 'areas');" "six foundation tables exist"
-assert_psql_true "SELECT COALESCE(SUM(row_count), 0) = 0 FROM (SELECT COUNT(*) AS row_count FROM data_sources UNION ALL SELECT COUNT(*) FROM datasets UNION ALL SELECT COUNT(*) FROM import_runs UNION ALL SELECT COUNT(*) FROM raw_records UNION ALL SELECT COUNT(*) FROM validation_issues UNION ALL SELECT COUNT(*) FROM areas) counts;" "foundation tables are empty"
+assert_psql_true "SELECT COUNT(*) FILTER (WHERE success) = 3 AND COUNT(*) FILTER (WHERE NOT success) = 0 FROM _sqlx_migrations;" "SQLx migration ledger is successful"
+assert_psql_true "SELECT COUNT(*) = 8 FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('data_sources', 'datasets', 'import_runs', 'raw_records', 'validation_issues', 'areas', 'transaction_observations', 'transaction_location_contexts');" "lineage and transaction tables exist"
+assert_psql_true "SELECT COALESCE(SUM(row_count), 0) = 0 FROM (SELECT COUNT(*) AS row_count FROM data_sources UNION ALL SELECT COUNT(*) FROM datasets UNION ALL SELECT COUNT(*) FROM import_runs UNION ALL SELECT COUNT(*) FROM raw_records UNION ALL SELECT COUNT(*) FROM validation_issues UNION ALL SELECT COUNT(*) FROM areas UNION ALL SELECT COUNT(*) FROM transaction_observations UNION ALL SELECT COUNT(*) FROM transaction_location_contexts) counts;" "lineage and transaction tables are empty"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'areas' AND indexname = 'areas_geometry_gix' AND indexdef ILIKE '%WHERE (geometry IS NOT NULL)%');" "partial GiST index exists"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM geometry_columns WHERE f_table_schema = 'public' AND f_table_name = 'areas' AND f_geometry_column = 'geometry' AND type = 'MULTIPOLYGON' AND srid = 4326);" "areas geometry is MultiPolygon SRID 4326"
-assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'raw_records_dataset_position_unique') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'raw_records_import_run_dataset_fk') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'validation_issues_raw_record_import_run_fk');" "lineage constraints exist"
+assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'raw_records_dataset_position_unique') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'raw_records_import_run_dataset_fk') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'validation_issues_raw_record_import_run_fk') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'transaction_observations_raw_record_unique') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'transaction_location_contexts_precision_geometry_consistent');" "lineage and transaction constraints exist"
+assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'transaction_location_contexts' AND indexname = 'transaction_location_contexts_location_gix' AND indexdef ILIKE '%WHERE (location IS NOT NULL)%');" "transaction location partial GiST index exists"
+assert_psql_true "SELECT EXISTS (SELECT 1 FROM geometry_columns WHERE f_table_schema = 'public' AND f_table_name = 'transaction_location_contexts' AND f_geometry_column = 'location' AND srid = 4326);" "transaction location geometry is SRID 4326"
+
+log "checking transaction schema contracts"
+docker compose exec -T postgres psql -U "$postgres_user" -d "$postgres_db" -v ON_ERROR_STOP=1 <<'SQL'
+DO $$
+DECLARE
+    v_source_id uuid;
+    v_dataset_id uuid;
+    v_import_run_id uuid;
+    v_raw_record_id uuid;
+    v_observation_id uuid;
+BEGIN
+    INSERT INTO data_sources (
+        name,
+        publisher,
+        source_url,
+        license_url,
+        metadata_verified_at
+    )
+    VALUES (
+        'MLIT contract test',
+        'MLIT',
+        'https://www.reinfolib.mlit.go.jp/',
+        'https://www.reinfolib.mlit.go.jp/help/termsOfUse/',
+        now()
+    )
+    RETURNING id INTO v_source_id;
+
+    INSERT INTO datasets (
+        source_id,
+        source_dataset_name,
+        retrieval_method,
+        retrieval_query,
+        retrieved_at,
+        artifact_sha256,
+        format,
+        record_count
+    )
+    VALUES (
+        v_source_id,
+        'MLIT transaction fixture contract test',
+        'fixture',
+        '{"prefecture":"13","period":"2024Q4"}'::jsonb,
+        now(),
+        repeat('a', 64),
+        'csv',
+        1
+    )
+    RETURNING id INTO v_dataset_id;
+
+    INSERT INTO import_runs (
+        dataset_id,
+        status,
+        normalization_version,
+        completed_at,
+        records_received,
+        records_imported
+    )
+    VALUES (
+        v_dataset_id,
+        'completed',
+        'contract-test',
+        now(),
+        1,
+        1
+    )
+    RETURNING id INTO v_import_run_id;
+
+    INSERT INTO raw_records (
+        dataset_id,
+        import_run_id,
+        source_position,
+        payload_json,
+        payload_sha256,
+        validation_status
+    )
+    VALUES (
+        v_dataset_id,
+        v_import_run_id,
+        1,
+        '{"row":"contract-test"}'::jsonb,
+        repeat('b', 64),
+        'valid'
+    )
+    RETURNING id INTO v_raw_record_id;
+
+    INSERT INTO transaction_observations (
+        raw_record_id,
+        import_run_id,
+        dataset_id,
+        source_record_hash,
+        normalization_version,
+        validation_status,
+        asset_type,
+        raw_asset_type,
+        price_category,
+        transaction_year,
+        transaction_quarter,
+        trade_price_jpy,
+        source_unit_price_jpy_per_m2,
+        area_m2,
+        municipality_code,
+        prefecture_name,
+        municipality_name
+    )
+    VALUES (
+        v_raw_record_id,
+        v_import_run_id,
+        v_dataset_id,
+        repeat('c', 64),
+        'contract-test',
+        'valid',
+        'land',
+        '宅地(土地)',
+        'transaction_price_information',
+        2024,
+        4,
+        1000000,
+        500000,
+        20,
+        '13109',
+        '東京都',
+        '品川区'
+    )
+    RETURNING id INTO v_observation_id;
+
+    BEGIN
+        INSERT INTO transaction_location_contexts (
+            transaction_observation_id,
+            location_precision,
+            location
+        )
+        VALUES (
+            v_observation_id,
+            'unknown',
+            ST_SetSRID(ST_MakePoint(139.7, 35.6), 4326)
+        );
+        RAISE EXCEPTION 'unknown precision accepted geometry';
+    EXCEPTION
+        WHEN check_violation THEN
+            NULL;
+    END;
+
+    INSERT INTO transaction_location_contexts (
+        transaction_observation_id,
+        location_precision
+    )
+    VALUES (v_observation_id, 'unknown');
+
+    BEGIN
+        INSERT INTO transaction_observations (
+            raw_record_id,
+            import_run_id,
+            dataset_id,
+            source_record_hash,
+            normalization_version,
+            validation_status,
+            asset_type,
+            raw_asset_type,
+            price_category,
+            transaction_year,
+            transaction_quarter,
+            municipality_code,
+            prefecture_name,
+            municipality_name
+        )
+        VALUES (
+            v_raw_record_id,
+            v_import_run_id,
+            v_dataset_id,
+            repeat('d', 64),
+            'contract-test',
+            'valid',
+            'land',
+            '宅地(土地)',
+            'transaction_price_information',
+            2024,
+            4,
+            '13109',
+            '東京都',
+            '品川区'
+        );
+        RAISE EXCEPTION 'duplicate raw-record observation was accepted';
+    EXCEPTION
+        WHEN unique_violation THEN
+            NULL;
+    END;
+
+    DELETE FROM transaction_location_contexts WHERE transaction_observation_id = v_observation_id;
+    DELETE FROM transaction_observations WHERE id = v_observation_id;
+    DELETE FROM raw_records WHERE id = v_raw_record_id;
+    DELETE FROM import_runs WHERE id = v_import_run_id;
+    DELETE FROM datasets WHERE id = v_dataset_id;
+    DELETE FROM data_sources WHERE id = v_source_id;
+END $$;
+SQL
+log "transaction schema contracts hold"
 
 log "Compose smoke validation passed"

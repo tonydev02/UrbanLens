@@ -64,8 +64,9 @@ GraphQL API
 Next.js analyst workspace
 ```
 
-The current foundation creates the lineage storage backbone but does not import
-fixtures or expose raw payload JSON through GraphQL.
+The current foundation creates the lineage storage backbone and the first
+canonical transaction/location schema. It does not yet import fixture rows,
+upsert normalized observations, or expose raw payload JSON through GraphQL.
 
 ## Tradeoffs
 
@@ -73,6 +74,9 @@ fixtures or expose raw payload JSON through GraphQL.
   from hiding schema failures.
 - The browser-facing GraphQL URL is separate from container networking because
   the connectivity proof is intentionally made by the browser.
+- The transaction schema keeps location precision separate from observed
+  transaction facts, so CSV observations can remain non-spatial until a
+  defensible geometry source exists.
 - The market map shell avoids fake data and fake map points until official data,
   location precision, and spatial queries are implemented.
 

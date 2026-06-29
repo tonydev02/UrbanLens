@@ -98,7 +98,7 @@ Expected results:
 - `/market-map` returns HTTP 200.
 - CORS allows only the configured local web origin.
 - The lineage and transaction tables are empty, PostGIS/pgcrypto are installed,
-  SQLx has three successful migration rows, `areas.geometry` is `MultiPolygon`
+  SQLx has four successful migration rows, `areas.geometry` is `MultiPolygon`
   SRID 4326, and transaction location geometry has SRID 4326 with a partial
   GiST index.
 - Transaction schema contracts reject geometry on `unknown` location precision
@@ -110,6 +110,24 @@ with:
 ```bash
 docker compose down --volumes --remove-orphans
 ```
+
+## Import The MLIT Fixture
+
+After the Compose stack is healthy, import the committed MLIT transaction CSV
+fixtures with:
+
+```bash
+./scripts/import-fixture.sh
+```
+
+The script runs the `urbanlens-importer` crate in Docker, attaches it to the
+`urbanlens_default` Compose network, and writes one import run per CSV artifact.
+It is safe to rerun: the same dataset artifact and source row positions are
+reported as duplicates skipped rather than creating duplicate observations.
+
+Use `IMPORTER_RUNTIME=host` only when host Rust is installed. The default Docker
+path uses named Docker volumes for Cargo registry/git/target caches so repeated
+local imports are faster.
 
 ## Frontend Checks
 

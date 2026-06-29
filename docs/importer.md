@@ -4,14 +4,72 @@
 
 Phase 02 has completed the pure MLIT transaction CSV parser/normalizer, the
 first canonical PostgreSQL schema for normalized observations, and the Slice 3
-persistence repositories. It does not yet provide the stable fixture CLI script
-or expose GraphQL inspection.
+persistence repositories. Slice 4 adds the stable `import-transactions` CLI and
+`scripts/import-fixture.sh` local entrypoint. GraphQL inspection remains
+deferred to Slice 5.
 
 The parser currently targets the committed official-source fixtures under:
 
 ```text
 workers/importer/fixtures/transactions/
 ```
+
+## Fixture Import Command
+
+Use the stable wrapper after the local Compose stack is running:
+
+```bash
+./scripts/import-fixture.sh
+```
+
+The wrapper runs `cargo run -p urbanlens-importer -- import-transactions` in the
+pinned Rust Docker image by default, joins the `urbanlens_default` Compose
+network, and connects to:
+
+```text
+postgres://urbanlens:urbanlens_dev@postgres:5432/urbanlens
+```
+
+The script is repeat-safe and accepts environment overrides:
+
+```text
+IMPORT_SOURCE=mlit
+IMPORT_PREFECTURE=13
+IMPORT_PERIOD=2024Q4
+IMPORT_FIXTURE_DIR=workers/importer/fixtures/transactions
+IMPORT_NORMALIZATION_VERSION=mlit-transaction-csv-v1
+IMPORTER_DOCKER_NETWORK=urbanlens_default
+DATABASE_URL=postgres://urbanlens:urbanlens_dev@postgres:5432/urbanlens
+IMPORTER_RUNTIME=docker
+```
+
+Set `IMPORTER_RUNTIME=host` only when host Rust is installed; that mode defaults
+to the host-mapped database URL:
+
+```text
+postgres://urbanlens:urbanlens_dev@localhost:5432/urbanlens
+```
+
+The underlying CLI can also be run directly:
+
+```bash
+cargo run -p urbanlens-importer -- import-transactions \
+  --source mlit \
+  --prefecture 13 \
+  --period 2024Q4 \
+  --fixture-dir workers/importer/fixtures/transactions \
+  --normalization-version mlit-transaction-csv-v1 \
+  --database-url postgres://urbanlens:urbanlens_dev@localhost:5432/urbanlens
+```
+
+The package remains named `urbanlens-importer`; this keeps workspace naming
+consistent with the API and domain crates instead of renaming the package mid
+phase.
+
+Expected output is one line per fixture artifact plus a summary. It includes
+artifact filename, import-run ID, terminal status, and counters for received,
+imported, updated, duplicates skipped, rejected, and warning records. It does
+not print full raw payload JSON or secrets.
 
 ## MLIT CSV Parser
 
@@ -120,8 +178,30 @@ Slice 3 also adds migration
 `202606290002_add_lineage_upsert_keys.sql`, which gives the repository durable
 upsert keys for `data_sources` and `datasets`.
 
+## Slice 4 Verification
+
+On `2026-06-29`, with the Compose stack healthy and four migrations applied:
+
+```text
+./scripts/import-fixture.sh
+summary source=mlit prefecture=13 period=2024Q4 artifacts=3 normalization_version=mlit-transaction-csv-v1 received=666 imported=666 updated=0 duplicates_skipped=0 rejected=0 warning_records=0 status=completed
+
+./scripts/import-fixture.sh
+summary source=mlit prefecture=13 period=2024Q4 artifacts=3 normalization_version=mlit-transaction-csv-v1 received=666 imported=0 updated=0 duplicates_skipped=666 rejected=0 warning_records=0 status=completed
+```
+
+Database count check after the two runs:
+
+```text
+datasets=3
+import_runs=6
+raw_records=666
+transaction_observations=666
+validation_issues=0
+```
+
 ## Next Slice
 
-Slice 4 should wire these repositories into the `import-transactions` CLI and
-the stable local `scripts/import-fixture.sh` entrypoint. GraphQL inspection
-remains intentionally deferred to Slice 5.
+Slice 5 should expose bounded GraphQL inspection for imported observations,
+import runs, validation issues, and provenance summaries without exposing raw
+payload JSON by default.

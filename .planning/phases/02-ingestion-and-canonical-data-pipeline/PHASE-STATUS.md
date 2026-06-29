@@ -12,10 +12,10 @@
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-27` |
-| Last Updated | `2026-06-29 19:45 +09:00` |
+| Last Updated | `2026-06-29 22:30 +09:00` |
 | Target Completion | `TBD` |
 | Current Branch | `main` |
-| Current Commit | `6e099e5` |
+| Current Commit | `1e2dc16` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related UAT | `PHASE-UAT.md` |
 
@@ -54,7 +54,7 @@ Build the first real ingestion path for the MLIT transaction fixture: preserve r
 
 ## 2. Current Focus
 
-Slices 1, 2, and 3 are complete. The importer has pure MLIT CSV parsing/normalization rules, canonical transaction/location schema contracts, and persistence repositories for lineage-preserving database writes. The next work is Slice 4 CLI wiring and the stable fixture import script.
+Slices 1, 2, 3, and 4 are complete. The importer has pure MLIT CSV parsing/normalization rules, canonical transaction/location schema contracts, persistence repositories for lineage-preserving database writes, and a repeat-safe fixture CLI/script. The next work is Slice 5 GraphQL inspection.
 
 ## 3. Definition of Done
 
@@ -67,13 +67,13 @@ Phase 2 is done when `./scripts/import-fixture.sh` imports the committed MLIT fi
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Phase 2 plan/status/UAT are created from the template and ready for implementation. |
-| Design / Architecture | In Progress | 85% | Parser/normalization boundary, canonical observation/location schema, and repository boundaries are implemented; CLI and GraphQL boundaries remain. |
+| Design / Architecture | In Progress | 90% | Parser/normalization boundary, canonical observation/location schema, repository boundary, and CLI/script boundary are implemented; GraphQL boundary remains. |
 | Backend | Not Started | 0% | GraphQL inspection queries are planned but not implemented. |
 | Database | In Progress | 45% | Canonical transaction/location migrations, lineage upsert keys, schema contract smoke assertions, and repository write tests are implemented. |
-| Worker / Ingestion | In Progress | 45% | Parser/normalizer and persistence repositories are implemented; CLI import command remains. |
+| Worker / Ingestion | In Progress | 65% | Parser/normalizer, persistence repositories, CLI import command, and fixture wrapper are implemented and repeat-verified. |
 | Frontend | Not Started | 0% | No Phase 2 product UI planned beyond existing shell. |
-| Tests | In Progress | 35% | Importer parser/normalization and repository tests pass; schema contracts are in Compose smoke; CLI, GraphQL, and UAT tests remain. |
-| Documentation | In Progress | 45% | Importer, data model, and planning docs are current for Slice 3. |
+| Tests | In Progress | 45% | Importer parser/normalization, repository tests, CLI parser tests, fixture import, and duplicate rerun pass; GraphQL and UAT tests remain. |
+| Documentation | In Progress | 55% | Importer, local-development, and planning docs are current for Slice 4. |
 | UAT | Not Started | 0% | UAT protocol drafted; no cases run. |
 
 ---
@@ -85,6 +85,7 @@ Record outcomes, not just activity.
 | Date | Completed Outcome | Evidence / Link |
 |---|---|---|
 | 2026-06-29 | Completed Slice 3: lineage upsert keys, persistence repositories, idempotent raw-record duplicate skipping, observation/location writes, validation issue storage, counters, failed-run visibility, and DB-backed repository tests. | `apps/api/migrations/202606290002_add_lineage_upsert_keys.sql`, `workers/importer/src/persistence.rs`, `docs/importer.md`, `docs/data-model.md` |
+| 2026-06-29 | Completed Slice 4: `import-transactions` CLI, Docker-backed `scripts/import-fixture.sh`, first fixture import, duplicate-safe rerun, CLI parser tests, and importer/local-development documentation. | `workers/importer/src/main.rs`, `scripts/import-fixture.sh`, `docs/importer.md`, `docs/local-development.md` |
 | 2026-06-29 | Completed Slice 2: canonical transaction/location migrations, observation-level validation issue link, lineage/idempotency constraints, precision/geometry constraints, and Compose schema contract assertions. | `apps/api/migrations/202606290001_create_transaction_observation_schema.sql`, `scripts/smoke-compose.sh`, `docs/data-model.md`, `docs/importer.md` |
 | 2026-06-29 | Completed Slice 1: pure MLIT CSV parser/normalizer, validation issue codes, CP932 fixture parsing, raw string preservation, and edge-case tests before database writes. | `workers/importer/src/mlit.rs`, `workers/importer/src/lib.rs`, `docs/importer.md` |
 | 2026-06-27 | Created the Phase 2 planning folder and drafted plan/status/UAT documents from the template, aligned with Phase 00 source/model decisions and Phase 01 handoff. | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
@@ -97,10 +98,11 @@ Record outcomes, not just activity.
 |---|---|---|
 | Slice 1 parser and normalization | Complete | Use the parser boundary as the input to Slice 4 CLI wiring. |
 | Slice 2 canonical schema and database contracts | Complete | Continue using the schema constraints as the target for repository writes. |
-| Slice 3 persistence repositories and idempotency | Complete | Wire repositories into the CLI and fixture script. |
+| Slice 3 persistence repositories and idempotency | Complete | Continue using repositories as the only database write boundary. |
+| Slice 4 importer CLI and fixture script | Complete | Expose imported data through bounded GraphQL inspection in Slice 5. |
 | Phase 2 planning | Complete | Use the plan as the implementation guide, updating it if later slices reveal new source constraints. |
-| Importer package command naming | Open question | Decide whether to keep `urbanlens-importer` or rename/alias to `importer`. |
-| Fixture path deliverable | Open question | Decide whether `fixtures/mlit/` becomes a wrapper/copy path or whether existing importer fixtures remain canonical. |
+| Importer package command naming | Resolved | Keep `urbanlens-importer` and document direct command examples with that package name. |
+| Fixture path deliverable | Resolved | Keep `workers/importer/fixtures/transactions/` canonical and use `scripts/import-fixture.sh` as the stable wrapper. |
 
 ---
 
@@ -108,7 +110,7 @@ Record outcomes, not just activity.
 
 Keep this short. The first action must be the exact action to take when work resumes.
 
-1. [ ] **Next immediate action:** Begin Slice 4 by wiring `import-transactions` CLI options to the parser and persistence repositories, then add `scripts/import-fixture.sh`.
+1. [ ] **Next immediate action:** Begin Slice 5 by adding bounded GraphQL inspection queries for imported observations, import runs, validation issues, data sources, and provenance summaries.
 2. [x] Decide whether validation issue storage needs an observation-level foreign key or can remain raw-record/import-run scoped for the first persistence slice.
 3. [ ] Decide and document importer package naming before publishing the first command examples.
 
@@ -155,6 +157,8 @@ Keep this short. The first action must be the exact action to take when work res
 | 2026-06-29 | Keep observation idempotency anchored in raw-record lineage and treat `source_record_hash` as indexed evidence, not a uniqueness key. | Prevents distinct identical source rows at different ordinals from being collapsed. | `docs/data-model.md`, ADR-003 |
 | 2026-06-29 | Add nullable `validation_issues.transaction_observation_id`. | Warning issues can link to normalized observations while rejected rows remain raw-record/import-run scoped. | `PHASE-PLAN.md` |
 | 2026-06-29 | Add unique upsert keys for `data_sources` and exact artifact/query `datasets`. | Repository upserts need durable database-level identity rather than best-effort select/update behavior. | `apps/api/migrations/202606290002_add_lineage_upsert_keys.sql` |
+| 2026-06-29 | Keep the importer package name as `urbanlens-importer`. | This matches existing workspace naming and avoids churn; command examples now use `cargo run -p urbanlens-importer -- import-transactions`. | `docs/importer.md` |
+| 2026-06-29 | Use `scripts/import-fixture.sh` as the stable fixture boundary rather than copying fixtures to `fixtures/mlit/`. | The committed Phase 0 fixture path is already documented and populated; the script provides the stable user entrypoint. | `docs/importer.md` |
 
 ### Changes From Original Plan
 
@@ -174,10 +178,13 @@ Keep this short. The first action must be the exact action to take when work res
 | Rust formatting | Pass | `bash scripts/check-rust-docker.sh` on `2026-06-29`. |
 | Rust lint | Pass | Docker-backed clippy workspace/all-target/all-feature check with warnings denied on `2026-06-29`. |
 | Rust tests | Pass | Docker-backed Rust tests pass: API 4 tests, importer 9 parser/normalization/repository tests, workspace doctests on `2026-06-29`. |
+| Importer CLI tests | Pass | Docker-backed Rust tests include 2 `urbanlens-importer` binary CLI parser tests on `2026-06-29`. |
 | TypeScript lint | Not Run | No frontend code changed in Slice 3. |
 | TypeScript type check | Not Run | No frontend code changed in Slice 3. |
 | Frontend tests | Not Run | No frontend code changed in Slice 3. |
 | Integration tests | Pass | `docker run ... cargo test -p urbanlens-importer persistence::tests` passed against Compose Postgres on `2026-06-29`. |
+| Fixture import script | Pass | First `./scripts/import-fixture.sh`: 3 artifacts, 666 received, 666 imported, 0 rejected, 0 warnings. Second run: 666 received, 0 imported, 666 duplicates skipped. |
+| Imported row counts | Pass | After final fixture-script validation: 3 datasets, 9 import runs, 666 raw records, 666 transaction observations, 0 validation issues. |
 | Docker Compose config | Pass | Covered by `bash scripts/smoke-compose.sh` on `2026-06-29`. |
 | Docker Compose smoke test | Pass | `bash scripts/smoke-compose.sh` passes on a fresh volume on `2026-06-29`; asserts four migrations, new transaction tables, precision/geometry constraints, and duplicate-observation rejection. |
 
@@ -200,7 +207,7 @@ Slice 3 persistence repositories and DB-backed repository tests were implemented
 
 ### Current Working Assumption
 
-The first importer should use the committed MLIT CSV fixtures and local PostgreSQL/PostGIS. It should not require an MLIT API key, live external requests, XPT001 geometry, or any property/station identity inference. Slices 1 through 3 keep CSV observations spatially `unknown`; Slice 4 should call the existing parser and persistence repositories rather than reimplementing import behavior in the CLI.
+The first importer uses the committed MLIT CSV fixtures and local PostgreSQL/PostGIS. It does not require an MLIT API key, live external requests, XPT001 geometry, or any property/station identity inference. Slices 1 through 4 keep CSV observations spatially `unknown`; Slice 5 should expose those imported observations through GraphQL without returning raw payload JSON by default.
 
 ### Important Files
 
@@ -215,7 +222,8 @@ apps/api/migrations/202606290001_create_transaction_observation_schema.sql — c
 apps/api/migrations/202606290002_add_lineage_upsert_keys.sql — source/dataset upsert keys
 scripts/smoke-compose.sh — Compose and schema contract smoke validation
 workers/importer/src/persistence.rs — Slice 3 repository writes and DB-backed tests
-workers/importer/src/main.rs — current compile-only importer entrypoint
+workers/importer/src/main.rs — `import-transactions` CLI entrypoint
+scripts/import-fixture.sh — stable Docker-backed fixture import wrapper
 ```
 
 ### Recommended Resume Command
@@ -226,7 +234,7 @@ sed -n '1,260p' .planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-
 
 ### Exact Next Technical Step
 
-Begin Slice 4: implement the `import-transactions` CLI options and `scripts/import-fixture.sh` wrapper around the Slice 1 parser and Slice 3 repositories.
+Begin Slice 5: add bounded GraphQL inspection for transaction observations, import runs, validation issues, data sources, and provenance summaries.
 
 ---
 
@@ -254,3 +262,4 @@ Append one concise row whenever the phase changes meaningfully.
 | 2026-06-29 00:00 +09:00 | `in_progress` | Slice 1 parser/normalizer completed; Docker-backed Rust formatting, clippy, and tests pass. |
 | 2026-06-29 12:00 +09:00 | `in_progress` | Slice 2 canonical transaction/location schema and Compose schema contract assertions implemented; focus moves to Slice 3 persistence repositories. |
 | 2026-06-29 19:45 +09:00 | `in_progress` | Slice 3 persistence repositories, idempotency keys, DB-backed repository tests, and fresh-volume Compose smoke completed; focus moves to Slice 4 CLI and fixture script. |
+| 2026-06-29 22:30 +09:00 | `in_progress` | Slice 4 importer CLI and Docker-backed fixture script completed; first import and duplicate rerun verified 666 official fixture rows without unintended duplicate observations; focus moves to Slice 5 GraphQL inspection. |

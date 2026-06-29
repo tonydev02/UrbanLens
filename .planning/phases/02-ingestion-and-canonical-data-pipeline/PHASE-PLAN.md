@@ -37,7 +37,7 @@ This is the first end-to-end proof that UrbanLens can turn imperfect public data
 
 ### In Scope
 
-- [ ] Implement the first real `workers/importer` Rust CLI command for MLIT transaction fixture imports.
+- [x] Implement the first real `workers/importer` Rust CLI command for MLIT transaction fixture imports.
 - [ ] Parse the committed CP932/Windows-31J MLIT CSV fixtures under `workers/importer/fixtures/transactions/`.
 - [ ] Add migrations for `transaction_observations` and `transaction_location_contexts`, plus any narrowly required schema adjustments to Phase 01 lineage tables.
 - [ ] Preserve raw rows, source positions, payload hashes, dataset artifact metadata, and normalization version.
@@ -46,7 +46,7 @@ This is the first end-to-end proof that UrbanLens can turn imperfect public data
 - [ ] Use idempotent upserts based on exact dataset artifact identity plus source row position, with deterministic source-record hashes where no stable external ID exists.
 - [ ] Record import counters for received, imported, updated, duplicates skipped, rejected, and warning records.
 - [ ] Expose bounded GraphQL inspection for imported observations, validation issues, provenance, and import-run status.
-- [ ] Add `docs/importer.md`, `scripts/import-fixture.sh`, and a stable fixture path or documented wrapper for `fixtures/mlit/`.
+- [x] Add `docs/importer.md`, `scripts/import-fixture.sh`, and a stable fixture path or documented wrapper for `fixtures/mlit/`.
 
 ### Out of Scope
 
@@ -288,16 +288,36 @@ Give the user one repeatable command to import the committed official-source fix
 
 **Tasks**
 
-- [ ] Implement `import-transactions` CLI options for source, prefecture, period, fixture directory, normalization version, and database URL.
-- [ ] Create `scripts/import-fixture.sh` as the stable local entrypoint.
-- [ ] Ensure the command creates an import run, loads fixture artifacts, stores raw rows, validates, normalizes, upserts, records issues, updates counters, and marks final status.
-- [ ] Add clear terminal output that summarizes counts without printing full raw payloads.
-- [ ] Document whether the Cargo package remains `urbanlens-importer` or is renamed/aliased to match `cargo run -p importer`.
+- [x] Implement `import-transactions` CLI options for source, prefecture, period, fixture directory, normalization version, and database URL.
+- [x] Create `scripts/import-fixture.sh` as the stable local entrypoint.
+- [x] Ensure the command creates an import run, loads fixture artifacts, stores raw rows, validates, normalizes, upserts, records issues, updates counters, and marks final status.
+- [x] Add clear terminal output that summarizes counts without printing full raw payloads.
+- [x] Document whether the Cargo package remains `urbanlens-importer` or is renamed/aliased to match `cargo run -p importer`.
 
 **Expected Evidence**
 
-- [ ] Running `./scripts/import-fixture.sh` imports the fixture into a local database.
-- [ ] Running it twice reports no unintended duplicate observations.
+- [x] Running `./scripts/import-fixture.sh` imports the fixture into a local database.
+- [x] Running it twice reports no unintended duplicate observations.
+
+**Completion Notes — 2026-06-29**
+
+- Replaced the compile-only importer entrypoint with `import-transactions` in
+  `workers/importer/src/main.rs`.
+- Added CLI options for `--source`, `--prefecture`, `--period`,
+  `--fixture-dir`, `--normalization-version`, and `--database-url`.
+- The CLI discovers CSV artifacts, computes artifact SHA-256 checksums, upserts
+  MLIT data source/dataset rows, starts one import run per artifact, normalizes
+  rows through the Slice 1 parser, persists through the Slice 3 repositories,
+  records counters, and marks terminal status.
+- Added `scripts/import-fixture.sh` as the stable Docker-backed local entrypoint.
+  It joins the `urbanlens_default` Compose network and uses the existing
+  package name `urbanlens-importer`.
+- Verified first import against local Compose: 3 artifacts, 666 received, 666
+  imported, 0 rejected, 0 warning records.
+- Verified duplicate rerun: 3 artifacts, 666 received, 0 imported, 666
+  duplicates skipped, 0 rejected, 0 warning records.
+- Count check after both runs: 3 datasets, 6 import runs, 666 raw records, 666
+  transaction observations, and 0 validation issues.
 
 ---
 
@@ -424,9 +444,9 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### Implementation Starting Point
 
-Slices 1, 2, and 3 are complete. Resume with Slice 4 by wiring the parser and
-persistence repositories into the `import-transactions` CLI and stable
-`scripts/import-fixture.sh` wrapper.
+Slices 1, 2, 3, and 4 are complete. Resume with Slice 5 by exposing bounded
+GraphQL inspection for imported observations, import runs, validation issues,
+and provenance summaries.
 
 ### Open Questions to Resolve During Slice 2
 

@@ -3017,6 +3017,10 @@ version = "0.1.0"
 [[package]]
 name = "urbanlens-importer"
 version = "0.1.0"
+dependencies = [
+ "encoding_rs",
+ "thiserror",
+]
 
 [[package]]
 name = "url"

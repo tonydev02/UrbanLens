@@ -49,7 +49,8 @@ All expected MVP asset categories are present. Agricultural and forest transacti
 - All records are categorized as `不動産取引価格情報`; no `成約価格情報` records are mixed in.
 - Source-provided `取引価格（㎡単価）` is populated for 67 records and blank for 599 records. UrbanLens must not manufacture a cross-asset-type replacement.
 - `用途` is blank in 167 records. A blank remains unknown and is not converted to a default use.
-- The source uses display values such as `2,000㎡以上`, Japanese era/domain labels, and blank strings. Import parsing must preserve the original raw value before normalization.
+- The fixtures contain four bounded total-floor-area display values, all `2,000㎡以上`. Import parsing must preserve the original raw value and may normalize it only as a lower-bound value, never as exact `2,000 m²`.
+- The source uses Japanese era/domain labels and blank strings. Import parsing must preserve the original raw value before normalization.
 - The final row uses CRLF while preceding rows use LF in each downloaded file. This source quirk is preserved; parsers must use universal-newline handling.
 
 ## Integrity

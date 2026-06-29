@@ -88,7 +88,7 @@ The committed fixtures contain these exact source columns in order:
 | 14 | `取引価格（㎡単価）` | source price per m² | Populated for only 44 of 666 fixture records. |
 | 15 | `土地の形状` | land shape | Source category. |
 | 16 | `間口` | frontage | Metres where numeric; blank otherwise. |
-| 17 | `延床面積（㎡）` | total floor area | Can contain bounded display text such as `2,000㎡以上`. |
+| 17 | `延床面積（㎡）` | total floor area | Can contain bounded display text such as `2,000㎡以上`; treat as a lower bound, not an exact area. |
 | 18 | `建築年` | building year | Japanese display string; blank for land. |
 | 19 | `建物の構造` | structure | Source category. |
 | 20 | `用途` | use | Multi-valued label or blank; not a verified commercial class. |

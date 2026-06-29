@@ -8,11 +8,11 @@
 |---|---|
 | Phase | `02` |
 | Name | `Ingestion and Canonical Data Pipeline` |
-| Overall Status | `ready_for_implementation` |
+| Overall Status | `in_progress` |
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-06-27` |
-| Last Updated | `2026-06-27 13:00 +07:00` |
+| Last Updated | `2026-06-29 00:00 +09:00` |
 | Target Completion | `TBD` |
 | Current Branch | `main` |
 | Current Commit | `f72e09e` |
@@ -54,7 +54,7 @@ Build the first real ingestion path for the MLIT transaction fixture: preserve r
 
 ## 2. Current Focus
 
-Phase planning is complete and aligned with Phase 00/01 decisions. Implementation has not started; the next work is Slice 1 parser and normalization tests.
+Slice 1 is complete. The importer now has pure MLIT CSV parsing and normalization rules with fixture and edge-case tests. The next work is Slice 2 canonical schema and database contracts.
 
 ## 3. Definition of Done
 
@@ -67,13 +67,13 @@ Phase 2 is done when `./scripts/import-fixture.sh` imports the committed MLIT fi
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Phase 2 plan/status/UAT are created from the template and ready for implementation. |
-| Design / Architecture | In Progress | 60% | Slice boundaries and data-flow design are drafted; schema details remain for Slice 2. |
+| Design / Architecture | In Progress | 70% | Parser/normalization boundary is implemented; schema details remain for Slice 2. |
 | Backend | Not Started | 0% | GraphQL inspection queries are planned but not implemented. |
 | Database | Not Started | 0% | Canonical transaction/location migrations are planned but not implemented. |
-| Worker / Ingestion | Not Started | 0% | Compile-only importer exists from Phase 01. |
+| Worker / Ingestion | In Progress | 20% | Slice 1 parser/normalizer is implemented; no database writes or CLI import command yet. |
 | Frontend | Not Started | 0% | No Phase 2 product UI planned beyond existing shell. |
-| Tests | Not Started | 0% | Parser, persistence, importer, and GraphQL tests are planned. |
-| Documentation | In Progress | 20% | Planning docs created; `docs/importer.md` is a later deliverable. |
+| Tests | In Progress | 15% | Importer parser/normalization tests pass; persistence, CLI, GraphQL, and UAT tests remain. |
+| Documentation | In Progress | 30% | Planning docs and initial importer parser documentation are current for Slice 1. |
 | UAT | Not Started | 0% | UAT protocol drafted; no cases run. |
 
 ---
@@ -84,6 +84,7 @@ Record outcomes, not just activity.
 
 | Date | Completed Outcome | Evidence / Link |
 |---|---|---|
+| 2026-06-29 | Completed Slice 1: pure MLIT CSV parser/normalizer, validation issue codes, CP932 fixture parsing, raw string preservation, and edge-case tests before database writes. | `workers/importer/src/mlit.rs`, `workers/importer/src/lib.rs`, `docs/importer.md` |
 | 2026-06-27 | Created the Phase 2 planning folder and drafted plan/status/UAT documents from the template, aligned with Phase 00 source/model decisions and Phase 01 handoff. | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
 
 ---
@@ -92,7 +93,8 @@ Record outcomes, not just activity.
 
 | Item | Current State | Next Step |
 |---|---|---|
-| Phase 2 planning | Complete | Use the plan as the implementation guide, updating it if Slice 1 reveals new source constraints. |
+| Slice 1 parser and normalization | Complete | Use the parser boundary as the input to Slice 2 schema design. |
+| Phase 2 planning | Complete | Use the plan as the implementation guide, updating it if later slices reveal new source constraints. |
 | Importer package command naming | Open question | Decide whether to keep `urbanlens-importer` or rename/alias to `importer`. |
 | Fixture path deliverable | Open question | Decide whether `fixtures/mlit/` becomes a wrapper/copy path or whether existing importer fixtures remain canonical. |
 
@@ -102,8 +104,8 @@ Record outcomes, not just activity.
 
 Keep this short. The first action must be the exact action to take when work resumes.
 
-1. [ ] **Next immediate action:** Begin Slice 1 by adding pure MLIT CSV parsing, source-row structs, normalization structs, validation issue codes, and fixture tests.
-2. [ ] Begin Slice 1 by adding pure MLIT CSV parsing, source-row structs, normalization structs, validation issue codes, and fixture tests.
+1. [ ] **Next immediate action:** Begin Slice 2 by designing and adding canonical transaction/location migrations around the Slice 1 normalized fields.
+2. [ ] Decide whether validation issue storage needs an observation-level foreign key or can remain raw-record/import-run scoped for the first persistence slice.
 3. [ ] Decide and document importer package naming before publishing the first command examples.
 
 ---
@@ -162,9 +164,9 @@ Keep this short. The first action must be the exact action to take when work res
 
 | Check | Latest Result | Evidence |
 |---|---|---|
-| Rust formatting | Not Run | Planning-only change. |
-| Rust lint | Not Run | Planning-only change. |
-| Rust tests | Not Run | Planning-only change. |
+| Rust formatting | Pass | `bash scripts/check-rust-docker.sh` on `2026-06-29`. |
+| Rust lint | Pass | Docker-backed clippy workspace/all-target/all-feature check with warnings denied on `2026-06-29`. |
+| Rust tests | Pass | Docker-backed Rust tests pass: API 4 tests, importer 6 parser/normalization tests, workspace doctests on `2026-06-29`. |
 | TypeScript lint | Not Run | Planning-only change. |
 | TypeScript type check | Not Run | Planning-only change. |
 | Frontend tests | Not Run | Planning-only change. |
@@ -186,11 +188,11 @@ Keep this short. The first action must be the exact action to take when work res
 
 ### Last Meaningful Change
 
-Phase 2 planning documents were created from the template and tailored to the MLIT fixture importer objective.
+Slice 1 parser and normalization rules were implemented and validated against the committed MLIT fixtures.
 
 ### Current Working Assumption
 
-The first importer should use the committed MLIT CSV fixtures and local PostgreSQL/PostGIS. It should not require an MLIT API key, live external requests, XPT001 geometry, or any property/station identity inference.
+The first importer should use the committed MLIT CSV fixtures and local PostgreSQL/PostGIS. It should not require an MLIT API key, live external requests, XPT001 geometry, or any property/station identity inference. Slice 1 keeps CSV observations spatially `unknown` and does not write to the database.
 
 ### Important Files
 
@@ -200,6 +202,7 @@ The first importer should use the committed MLIT CSV fixtures and local PostgreS
 docs/data-sources.md — MLIT fixture/source profile and source limitations
 docs/data-model.md — conceptual lineage, idempotency, validation, and location-precision rules
 workers/importer/fixtures/transactions/README.md — committed fixture acquisition, profile, and checksums
+workers/importer/src/mlit.rs — pure MLIT parser, normalization structs, validation issues, and Slice 1 tests
 workers/importer/src/main.rs — current compile-only importer entrypoint
 ```
 
@@ -211,7 +214,7 @@ sed -n '1,260p' .planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-
 
 ### Exact Next Technical Step
 
-Begin Slice 1: add pure MLIT CSV parser and normalization tests before any database writes.
+Begin Slice 2: add canonical transaction/location migrations and database contract tests around the Slice 1 normalized fields.
 
 ---
 
@@ -236,3 +239,4 @@ Append one concise row whenever the phase changes meaningfully.
 | Timestamp | Status | Update |
 |---|---|---|
 | 2026-06-27 13:00 +07:00 | `ready_for_implementation` | Phase 2 planning docs created from template with small implementation slices. |
+| 2026-06-29 00:00 +09:00 | `in_progress` | Slice 1 parser/normalizer completed; Docker-backed Rust formatting, clippy, and tests pass. |

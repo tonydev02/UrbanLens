@@ -10,9 +10,9 @@
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
 | Current Milestone | `MVP ingestion foundation` |
 | Current Phase | `02 — Ingestion and Canonical Data Pipeline` |
-| Current Phase Status | `ready_for_implementation` |
+| Current Phase Status | `in_progress` |
 | Project Health | `green` |
-| Last Updated | `2026-06-27` |
+| Last Updated | `2026-06-29` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
 | Latest Commit | `f72e09e` |
@@ -23,6 +23,8 @@
 
 Implement the first official MLIT fixture import in small slices without
 violating Phase 0 source, lineage, metric, or location-precision decisions.
+Slice 1 is complete; the active next step is the canonical schema/database
+contract slice.
 
 ---
 
@@ -35,7 +37,7 @@ violating Phase 0 source, lineage, metric, or location-precision decisions.
 | Plan | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-PLAN.md` |
 | Status | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-STATUS.md` |
 | UAT | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-UAT.md` |
-| Phase Status | `ready_for_implementation` |
+| Phase Status | `in_progress` |
 | Phase Health | `green` |
 
 ### Why This Is the Active Phase
@@ -53,7 +55,7 @@ canonical persistence.
 > **Do this first when resuming work:**
 
 ```text
-Begin Slice 1 by implementing pure MLIT CSV parsing, normalization structs, validation issue codes, and fixture tests before any database writes.
+Begin Slice 2 by adding canonical transaction/location migrations and database contract tests around the Slice 1 normalized fields.
 ```
 
 ### Resume Sequence
@@ -64,7 +66,7 @@ Begin Slice 1 by implementing pure MLIT CSV parsing, normalization structs, vali
 4. Confirm the smallest useful ingestion scope remains the committed MLIT transaction fixtures.
 5. Preserve raw payloads and exact source-artifact lineage.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
-7. Add tests for parsing and validation before database writes; add idempotency and persistence tests before expanding the importer.
+7. Preserve the completed Slice 1 parser/normalizer boundary; add schema tests before persistence writes.
 
 ---
 
@@ -76,7 +78,7 @@ Begin Slice 1 by implementing pure MLIT CSV parsing, normalization structs, vali
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
 | Backend API | Implemented | Phase 01 | Actix API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API image healthcheck are in place. |
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
-| Ingestion Pipeline | Ready | Phase 02 | Phase 2 planning docs are created; compile-only importer crate exists and real ingestion starts with parser/normalizer tests. |
+| Ingestion Pipeline | In Progress | Phase 02 | Slice 1 parser/normalizer is complete with fixture tests; Slice 2 schema/database contracts are next. |
 | Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
 | Testing | Complete | Phase 01 | Rust/web/build checks, fresh/existing-volume Compose smoke, failure/recovery UAT, secret checks, and GitHub Actions pass. |
 | Infrastructure / CI | Complete | Phase 01 | Root/infra Compose starts PostGIS, migrate, API, and web; GitHub Actions workflow and reusable smoke script are green. |
@@ -104,6 +106,7 @@ Begin Slice 1 by implementing pure MLIT CSV parsing, normalization structs, vali
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-06-29 | Completed Phase 02 Slice 1: CP932 MLIT CSV parser, source-row/raw-value preservation, normalization structs, validation issue codes, and six importer tests over all 666 committed fixture rows and edge cases. | 02 | `workers/importer/src/mlit.rs`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-27 | Created Phase 02 plan/status/UAT documents with six small implementation slices for the MLIT fixture importer. | 02 | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
 | 2026-06-26 | User confirmed GitHub Actions checked green; Phase 01 closed and project resume point moved to Phase 02. | 01 | `.github/workflows/ci.yml`, `.planning/phases/01-local-platform-foundation/`, `.planning/STATE.md` |
 | 2026-06-26 | Completed Slice 5: GitHub Actions workflow, reusable Compose smoke, optional MLIT XIT001 diagnostic, fresh/existing-volume Docker UAT, failure/recovery checks, Rust/web/build checks, and documentation updates. | 01 | `.github/workflows/ci.yml`, `scripts/smoke-compose.sh`, `scripts/smoke-mlit-api.sh`, `PHASE-UAT.md` |

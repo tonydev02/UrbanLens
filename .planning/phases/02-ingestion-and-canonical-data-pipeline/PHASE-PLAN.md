@@ -8,10 +8,10 @@
 |---|---|
 | Phase | `02` |
 | Name | `Ingestion and Canonical Data Pipeline` |
-| Status | `ready_for_implementation` |
+| Status | `in_progress` |
 | Owner | `Project owner` |
 | Created | `2026-06-27` |
-| Last Updated | `2026-06-27` |
+| Last Updated | `2026-06-29` |
 | Target Milestone | `MVP ingestion foundation` |
 | Related ADRs | `docs/adr/001-use-postgis-for-spatial-queries.md`, `002-use-graphql-for-product-api.md`, `003-preserve-raw-source-payloads.md`, `004-model-location-precision-explicitly.md`, `005-use-rust-actix-web-for-api.md` |
 
@@ -193,16 +193,23 @@ Learn the source shape without touching the database: decode MLIT CSV rows, pres
 
 **Tasks**
 
-- [ ] Add MLIT CSV parser modules and fixture tests for the committed files.
-- [ ] Handle CP932/Windows-31J decoding, headers, blank strings, row positions, and line-ending quirks.
-- [ ] Parse transaction quarter, JPY price, source unit price, area, total floor area display values, ward code, station label, walk minutes, and source asset type.
-- [ ] Define normalization structs and validation issue codes in importer/domain modules.
-- [ ] Test numeric normalization, unit-price handling, invalid values, bounded display values, and unknown asset labels.
+- [x] Add MLIT CSV parser modules and fixture tests for the committed files.
+- [x] Handle CP932/Windows-31J decoding, headers, blank strings, row positions, and line-ending quirks.
+- [x] Parse transaction quarter, JPY price, source unit price, area, total floor area display values, ward code, station label, walk minutes, and source asset type.
+- [x] Define normalization structs and validation issue codes in importer modules.
+- [x] Test numeric normalization, unit-price handling, invalid values, bounded display values, and unknown asset labels.
 
 **Expected Evidence**
 
-- [ ] Unit tests parse all three fixture files and confirm 666 source records.
-- [ ] Tests prove raw strings survive and invalid/ambiguous values become warnings or rejections instead of fake defaults.
+- [x] Unit tests parse all three fixture files and confirm 666 source records.
+- [x] Tests prove raw strings survive and invalid/ambiguous values become warnings or rejections instead of fake defaults.
+
+**Completion Notes — 2026-06-29**
+
+- Implemented pure parser/normalizer code in `workers/importer/src/mlit.rs`.
+- Added CP932/Windows-31J fixture decoding, documented 30-column header validation, source row positions, raw-value preservation, canonical normalization structs, and validation issue codes.
+- Fixture tests parse Chuo, Shinagawa, and Shibuya 2024 Q4 files, confirm 666 source rows, preserve blank raw strings, preserve MLIT-supplied source unit price only, and keep CSV fixture observations at `location_precision=unknown`.
+- Edge tests cover unknown asset labels, negative prices, invalid numeric values, invalid station walking time, bounded total floor-area display values, unsupported price categories, invalid municipality codes, and invalid quarters.
 
 ---
 
@@ -392,13 +399,14 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### Implementation Starting Point
 
-Start with Slice 1. Keep the parser/normalizer pure and heavily tested before adding database writes. The first useful learning loop is: read one fixture row, preserve its raw source fields, parse a few safe canonical values, and produce explicit validation issues.
+Slice 1 is complete. Resume with Slice 2 by designing the canonical transaction/location migrations around the implemented parser/normalizer output. Keep database writes separate from the schema-contract tests until the constraints are clear.
 
-### Open Questions to Resolve During Slice 1
+### Open Questions to Resolve During Slice 2
 
 - Should the Cargo package be renamed from `urbanlens-importer` to `importer` to match the requested command, or should docs consistently use the existing package name?
 - Should `fixtures/mlit/` be a root-level stable wrapper, a symlink-like copied fixture location, or should the existing `workers/importer/fixtures/transactions/` remain canonical?
 - Which fields belong directly on `transaction_observations` versus `transaction_location_contexts` for the first migration?
+- Should validation issue storage gain an optional `transaction_observation_id`, or should Slice 2 keep validation issues scoped to import runs/raw records until persistence exists?
 
 ### Do Not Reopen Without New Evidence
 

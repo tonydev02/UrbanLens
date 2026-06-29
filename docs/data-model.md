@@ -200,7 +200,7 @@ unknown
 |---|---|---|
 | Empty CSV field | canonical null | Preserve empty raw string; warning only when the field is expected for that asset type. |
 | Numeric string | parsed numeric | Reject non-finite/negative values according to domain rule; retain raw. |
-| `2,000㎡以上` or another bound | structured bound or null pending support | Never store as exact 2,000 m². |
+| `2,000㎡以上` or another bound | structured lower bound when supported, otherwise null | Never store as exact 2,000 m². |
 | Unknown asset/use label | preserved unknown label | Add validation warning; do not coerce to “other” without retaining the source value. |
 | Quarter label | year + quarter | Reject impossible/out-of-range quarter. |
 | CSV station label/time | station context attributes | Does not establish station identity or point geometry. |

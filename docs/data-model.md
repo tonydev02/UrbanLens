@@ -249,15 +249,23 @@ Later implementation may expose `high`, `medium`, `low`, or `unknown`, but it mu
 
 ## Current Physical Schema
 
-Phase 02 Slice 2 adds the first physical observation schema while keeping
-database writes deferred to Slice 3:
+Phase 02 Slices 2 and 3 add the first physical observation schema and the
+repository layer that writes through it:
 
 - `transaction_observations` stores one normalized historical observation per
   originating raw record.
 - `transaction_location_contexts` stores the observation's explicit
   `location_precision` and optional SRID 4326 geometry.
 - `validation_issues.transaction_observation_id` can link warning issues to a
-  normalized observation when persistence is added.
+  normalized observation.
+
+Additional Slice 3 idempotency keys:
+
+- `data_sources.name` is unique so publisher-level source metadata can be
+  upserted deterministically.
+- `datasets` are unique by source, source dataset name, retrieval method,
+  retrieval query, and artifact checksum so exact source artifacts are reused
+  on repeated imports.
 
 Important constraints:
 
@@ -276,3 +284,8 @@ The schema intentionally does not make `source_record_hash` globally unique.
 Exact-artifact idempotency remains anchored in raw-record lineage
 `(dataset_id, source_position)`, so two identical source payloads at different
 row ordinals are still allowed to become distinct observations.
+
+The importer repository preserves the first raw-record lineage on duplicate
+reruns. A later import run that sees the same dataset artifact/source position
+counts that row as a duplicate skip instead of rewriting the raw record's
+original `import_run_id`.

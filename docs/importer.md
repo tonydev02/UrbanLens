@@ -2,10 +2,10 @@
 
 ## Current Scope
 
-Phase 02 has completed the pure MLIT transaction CSV parser/normalizer and the
-first canonical PostgreSQL schema for normalized observations. It does not yet
-write fixture rows to PostgreSQL, create import runs from the CLI, upsert raw
-records, or expose GraphQL inspection.
+Phase 02 has completed the pure MLIT transaction CSV parser/normalizer, the
+first canonical PostgreSQL schema for normalized observations, and the Slice 3
+persistence repositories. It does not yet provide the stable fixture CLI script
+or expose GraphQL inspection.
 
 The parser currently targets the committed official-source fixtures under:
 
@@ -91,9 +91,37 @@ verifies the new migration ledger, table/index/geometry metadata, rejects
 `unknown` location precision with a geometry value, and rejects duplicate
 observations for one raw record.
 
+## Persistence Repositories
+
+Implemented in `workers/importer/src/persistence.rs`.
+
+Current behavior:
+
+- upserts publisher-level `data_sources` rows by source name;
+- upserts exact artifact/query `datasets` rows by source, dataset name,
+  retrieval method, retrieval query, and artifact checksum;
+- creates visible `import_runs` in `running` state and marks runs as
+  `completed`, `completed_with_warnings`, or `failed`;
+- inserts raw records with deterministic JSON payload SHA-256 hashes;
+- preserves raw-record idempotency by `(dataset_id, source_position)`;
+- stores warning and rejection issues with code, severity, field, safe raw
+  value summary, message, and disposition;
+- writes one canonical `transaction_observations` row per inserted raw record;
+- writes one `transaction_location_contexts` row with
+  `location_precision=unknown` and no geometry for CSV rows;
+- reports counters for received, imported, updated, duplicate skipped,
+  rejected, and warning records.
+
+Duplicate fixture rows from the same dataset artifact and source position are
+reported as skipped. The original raw-record/import-run lineage is preserved
+rather than reassigned to a later retry run.
+
+Slice 3 also adds migration
+`202606290002_add_lineage_upsert_keys.sql`, which gives the repository durable
+upsert keys for `data_sources` and `datasets`.
+
 ## Next Slice
 
-Slice 3 should add persistence repositories for data source/dataset upsert,
-import-run lifecycle, raw-record upsert, validation issue insert, and
-observation/location upsert. CLI commands, idempotent import counters, and
-GraphQL inspection remain intentionally deferred.
+Slice 4 should wire these repositories into the `import-transactions` CLI and
+the stable local `scripts/import-fixture.sh` entrypoint. GraphQL inspection
+remains intentionally deferred to Slice 5.

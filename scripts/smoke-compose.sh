@@ -169,7 +169,7 @@ log "unconfigured CORS origin is not granted"
 
 log "checking database schema foundation"
 assert_psql_true "SELECT COUNT(*) = 2 FROM pg_extension WHERE extname IN ('postgis', 'pgcrypto');" "required extensions exist"
-assert_psql_true "SELECT COUNT(*) FILTER (WHERE success) = 3 AND COUNT(*) FILTER (WHERE NOT success) = 0 FROM _sqlx_migrations;" "SQLx migration ledger is successful"
+assert_psql_true "SELECT COUNT(*) FILTER (WHERE success) = 4 AND COUNT(*) FILTER (WHERE NOT success) = 0 FROM _sqlx_migrations;" "SQLx migration ledger is successful"
 assert_psql_true "SELECT COUNT(*) = 8 FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('data_sources', 'datasets', 'import_runs', 'raw_records', 'validation_issues', 'areas', 'transaction_observations', 'transaction_location_contexts');" "lineage and transaction tables exist"
 assert_psql_true "SELECT COALESCE(SUM(row_count), 0) = 0 FROM (SELECT COUNT(*) AS row_count FROM data_sources UNION ALL SELECT COUNT(*) FROM datasets UNION ALL SELECT COUNT(*) FROM import_runs UNION ALL SELECT COUNT(*) FROM raw_records UNION ALL SELECT COUNT(*) FROM validation_issues UNION ALL SELECT COUNT(*) FROM areas UNION ALL SELECT COUNT(*) FROM transaction_observations UNION ALL SELECT COUNT(*) FROM transaction_location_contexts) counts;" "lineage and transaction tables are empty"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'areas' AND indexname = 'areas_geometry_gix' AND indexdef ILIKE '%WHERE (geometry IS NOT NULL)%');" "partial GiST index exists"

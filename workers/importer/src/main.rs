@@ -1,3 +1,3 @@
 fn main() {
-    println!("UrbanLens importer workspace is ready; ingestion is not implemented yet.");
+    println!("UrbanLens importer workspace is ready; CLI ingestion is not implemented yet.");
 }

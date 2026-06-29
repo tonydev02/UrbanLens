@@ -239,7 +239,7 @@ Add the minimum physical schema needed to persist normalized observations with l
 - Created `transaction_location_contexts` with mandatory `location_precision`, nullable SRID 4326 geometry, a one-to-one observation link, and precision/geometry consistency checks.
 - Added optional `validation_issues.transaction_observation_id` so warning issues can later link to normalized observations without breaking raw-record/import-run issue scope.
 - Anchored observation idempotency in raw-record lineage: one observation per raw record. `source_record_hash` remains indexed evidence rather than a uniqueness key, preserving distinct identical rows at different source positions.
-- Extended `scripts/smoke-compose.sh` to expect three successful migrations, verify the new tables/indexes/geometry metadata, reject geometry for `unknown` precision, and reject duplicate observations for one raw record.
+- Extended `scripts/smoke-compose.sh` to verify the new tables/indexes/geometry metadata, reject geometry for `unknown` precision, and reject duplicate observations for one raw record. Slice 3 later raised the successful migration count to four.
 
 ---
 
@@ -251,16 +251,32 @@ Persist source artifacts, raw records, validation issues, and observations safel
 
 **Tasks**
 
-- [ ] Add SQLx repository functions for data-source/dataset upsert, import-run lifecycle, raw-record upsert, validation issue insert, and observation upsert.
-- [ ] Implement counters for received, imported, updated, duplicates skipped, rejected, and warning records.
-- [ ] Make duplicate fixture imports reuse or skip existing rows without double-counting observations.
-- [ ] Preserve failed import runs and support retry in a later run.
-- [ ] Add integration tests against PostgreSQL/PostGIS through existing Docker-backed check patterns.
+- [x] Add SQLx repository functions for data-source/dataset upsert, import-run lifecycle, raw-record upsert, validation issue insert, and observation upsert.
+- [x] Implement counters for received, imported, updated, duplicates skipped, rejected, and warning records.
+- [x] Make duplicate fixture imports reuse or skip existing rows without double-counting observations.
+- [x] Preserve failed import runs and support retry in a later run.
+- [x] Add integration tests against PostgreSQL/PostGIS through existing Docker-backed check patterns.
 
 **Expected Evidence**
 
-- [ ] Import persistence tests prove raw-record preservation, observation linkage, warning/rejection storage, counters, and duplicate behavior.
-- [ ] A forced failure leaves an `import_runs.status='failed'` row with an error kind.
+- [x] Import persistence tests prove raw-record preservation, observation linkage, warning/rejection storage, counters, and duplicate behavior.
+- [x] A forced failure leaves an `import_runs.status='failed'` row with an error kind.
+
+**Completion Notes — 2026-06-29**
+
+- Added migration `202606290002_add_lineage_upsert_keys.sql` with durable
+  upsert keys for `data_sources` and exact artifact/query `datasets`.
+- Added `workers/importer/src/persistence.rs` with repository functions for
+  source/dataset upsert, import-run start/complete/fail, raw-record insert with
+  duplicate skip, validation issue insert, transaction observation upsert,
+  unknown-location context upsert, and import counters.
+- Preserved exact-artifact idempotency by skipping duplicate
+  `(dataset_id, source_position)` rows while keeping the original raw-record
+  import-run lineage intact.
+- Added DB-backed repository tests for stable source/dataset reuse,
+  raw-record/observation linkage, duplicate source-position skipping,
+  warning/rejection issue storage, import counters, and failed-run visibility.
+- Updated Compose smoke to expect four successful migrations.
 
 ---
 
@@ -408,7 +424,9 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### Implementation Starting Point
 
-Slices 1 and 2 are complete. Resume with Slice 3 by adding persistence repositories around the parser output and canonical schema. Keep the first repository slice focused on data-source/dataset upsert, import-run lifecycle, raw-record upsert, validation issue insert, and observation/location upsert.
+Slices 1, 2, and 3 are complete. Resume with Slice 4 by wiring the parser and
+persistence repositories into the `import-transactions` CLI and stable
+`scripts/import-fixture.sh` wrapper.
 
 ### Open Questions to Resolve During Slice 2
 

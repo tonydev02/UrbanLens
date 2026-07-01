@@ -62,9 +62,18 @@ cargo run -p urbanlens-importer -- import-transactions \
   --database-url postgres://urbanlens:urbanlens_dev@localhost:5432/urbanlens
 ```
 
-The package remains named `urbanlens-importer`; this keeps workspace naming
-consistent with the API and domain crates instead of renaming the package mid
-phase.
+### Naming Decision
+
+The importer package remains named `urbanlens-importer`. Command examples should
+use:
+
+```bash
+cargo run -p urbanlens-importer -- import-transactions
+```
+
+Do not document `cargo run -p importer` unless the Cargo package is deliberately
+renamed later. Keeping `urbanlens-importer` matches the workspace naming style
+used by crates such as `urbanlens-api` and avoids unnecessary churn in Phase 02.
 
 Expected output is one line per fixture artifact plus a summary. It includes
 artifact filename, import-run ID, terminal status, and counters for received,

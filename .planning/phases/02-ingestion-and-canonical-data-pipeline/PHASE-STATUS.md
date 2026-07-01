@@ -101,7 +101,7 @@ Record outcomes, not just activity.
 | Slice 3 persistence repositories and idempotency | Complete | Continue using repositories as the only database write boundary. |
 | Slice 4 importer CLI and fixture script | Complete | Expose imported data through bounded GraphQL inspection in Slice 5. |
 | Phase 2 planning | Complete | Use the plan as the implementation guide, updating it if later slices reveal new source constraints. |
-| Importer package command naming | Resolved | Keep `urbanlens-importer` and document direct command examples with that package name. |
+| Importer package command naming | Complete | Decision documented: keep `urbanlens-importer`; command examples use `cargo run -p urbanlens-importer -- import-transactions`. |
 | Fixture path deliverable | Resolved | Keep `workers/importer/fixtures/transactions/` canonical and use `scripts/import-fixture.sh` as the stable wrapper. |
 
 ---
@@ -112,7 +112,7 @@ Keep this short. The first action must be the exact action to take when work res
 
 1. [ ] **Next immediate action:** Begin Slice 5 by adding bounded GraphQL inspection queries for imported observations, import runs, validation issues, data sources, and provenance summaries.
 2. [x] Decide whether validation issue storage needs an observation-level foreign key or can remain raw-record/import-run scoped for the first persistence slice.
-3. [ ] Decide and document importer package naming before publishing the first command examples.
+3. [x] Decide and document importer package naming before publishing the first command examples.
 
 ---
 

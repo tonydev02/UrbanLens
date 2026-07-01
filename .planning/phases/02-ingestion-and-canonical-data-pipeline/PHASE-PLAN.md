@@ -73,7 +73,7 @@ This is the first end-to-end proof that UrbanLens can turn imperfect public data
 
 | ID | Requirement | Priority | Notes |
 |---|---|---:|---|
-| FR-01 | Add an importer command equivalent to `cargo run -p urbanlens-importer -- import-transactions --source mlit --prefecture 13 --period 2024Q4 --fixture-dir workers/importer/fixtures/transactions`. | Must | The user-requested shape uses `cargo run -p importer`; the actual crate is currently `urbanlens-importer`, so implementation should either preserve the existing package name or deliberately rename/update workspace docs. |
+| FR-01 | Add an importer command equivalent to `cargo run -p urbanlens-importer -- import-transactions --source mlit --prefecture 13 --period 2024Q4 --fixture-dir workers/importer/fixtures/transactions`. | Must | Resolved in Slice 4: preserve the existing package name `urbanlens-importer` and document command examples with that package name. |
 | FR-02 | Create or reuse a `data_sources` row for MLIT and create one dataset artifact record per imported source fixture artifact/query. | Must | Preserve retrieval query, artifact checksum, format, encoding, record count, and attribution context. |
 | FR-03 | Every import execution creates an `import_run`, starts as `running`, and ends as `completed`, `completed_with_warnings`, or `failed`. | Must | Failed imports must remain visible with error kind and counts reached before failure. |
 | FR-04 | Every received source row is stored as a `raw_record` before or alongside normalization. | Must | Preserve blank strings and source display values in JSONB. |
@@ -292,7 +292,7 @@ Give the user one repeatable command to import the committed official-source fix
 - [x] Create `scripts/import-fixture.sh` as the stable local entrypoint.
 - [x] Ensure the command creates an import run, loads fixture artifacts, stores raw rows, validates, normalizes, upserts, records issues, updates counters, and marks final status.
 - [x] Add clear terminal output that summarizes counts without printing full raw payloads.
-- [x] Document whether the Cargo package remains `urbanlens-importer` or is renamed/aliased to match `cargo run -p importer`.
+- [x] Document that the Cargo package remains `urbanlens-importer` and command examples use `cargo run -p urbanlens-importer -- import-transactions`.
 
 **Expected Evidence**
 
@@ -448,10 +448,14 @@ Slices 1, 2, 3, and 4 are complete. Resume with Slice 5 by exposing bounded
 GraphQL inspection for imported observations, import runs, validation issues,
 and provenance summaries.
 
-### Open Questions to Resolve During Slice 2
+### Resolved Questions
 
-- Should the Cargo package be renamed from `urbanlens-importer` to `importer` to match the requested command, or should docs consistently use the existing package name?
-- Should `fixtures/mlit/` be a root-level stable wrapper, a symlink-like copied fixture location, or should the existing `workers/importer/fixtures/transactions/` remain canonical?
+- Resolved during Slice 4: keep the Cargo package name as
+  `urbanlens-importer`; docs and direct command examples use
+  `cargo run -p urbanlens-importer -- import-transactions`.
+- Resolved during Slice 4: keep `workers/importer/fixtures/transactions/` as
+  the canonical fixture path and use `scripts/import-fixture.sh` as the stable
+  local wrapper.
 - Resolved during Slice 2: normalized transaction facts, source context labels, period, units, and raw/import/dataset lineage belong on `transaction_observations`; precision and geometry belong on `transaction_location_contexts`.
 - Resolved during Slice 2: validation issue storage gains nullable `transaction_observation_id` while preserving existing import-run/raw-record scope.
 

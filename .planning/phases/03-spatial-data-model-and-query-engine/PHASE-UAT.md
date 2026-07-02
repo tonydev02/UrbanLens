@@ -8,7 +8,7 @@
 |---|---|
 | Phase | `03` |
 | Name | `Spatial Data Model and Query Engine` |
-| UAT Status | `not_started` |
+| UAT Status | `in_progress` |
 | Environment | `local` |
 | Tester | `Project owner` |
 | Started | `not_started` |
@@ -32,7 +32,7 @@ Verify that UrbanLens can load official Tokyo ward boundaries into PostGIS, use 
 - [ ] Correct branch is checked out.
 - [ ] Docker Compose is available.
 - [ ] Local PostgreSQL/PostGIS stack can start through the documented Compose command.
-- [ ] Required migrations have been applied.
+- [x] Required migrations have been applied.
 - [x] Official ward boundary fixture is available and documented.
 - [ ] MLIT transaction fixtures are available under `workers/importer/fixtures/transactions/`.
 - [ ] No MLIT API key is required for required Phase 03 UAT.
@@ -81,7 +81,7 @@ Verify that the selected official boundary fixture imports into governed area ta
 
 - [x] Boundary source documentation is complete.
 - [ ] Boundary migration has run.
-- [ ] Boundary importer command or script exists.
+- [x] Boundary importer command or script exists.
 
 **Steps**
 
@@ -92,20 +92,32 @@ Verify that the selected official boundary fixture imports into governed area ta
 
 **Expected Result**
 
-- [ ] Import exits `0`.
-- [ ] Exactly 23 Tokyo special wards are present unless the selected official source documents a different scoped fixture.
-- [ ] Boundary geometries are SRID 4326 polygon/multipolygon values.
-- [ ] Each boundary has administrative code, Japanese/English label where available, source record hash, and source lineage.
+- [x] Import exits `0`.
+- [x] Exactly 23 Tokyo special wards are present unless the selected official source documents a different scoped fixture.
+- [x] Boundary geometries are SRID 4326 polygon/multipolygon values.
+- [x] Each boundary has administrative code, Japanese/English label where available, source record hash, and source lineage.
 
 **Actual Result**
 
-Fill in during UAT.
+On `2026-07-02`, isolated Compose stack
+`COMPOSE_PROJECT_NAME=urbanlens_slice3_smoke` passed migrations and schema
+smoke. First `./scripts/import-boundaries.sh` run imported 118 source features
+into 23 ward boundaries. Second run skipped 118 duplicate raw features and
+updated the same 23 boundary rows. SQL count check returned 23 `areas`, 23
+`area_boundaries`, 118 `raw_records`, 23 distinct ward codes, 23 valid SRID
+4326 multipolygons, and 0 transaction location geometries.
 
-**Status:** `not_run`
+**Status:** `passed`
 
 **Evidence**
 
-Add command output, SQL checks, or GraphQL response excerpts.
+Evidence:
+
+```text
+summary source=mlit-n03 boundary_version=2023-01-01 source_features=118 wards=23 normalization_version=mlit-n03-boundary-geojson-v1 received=118 imported=23 updated=0 duplicates_skipped=0 rejected=0 warning_records=0 status=completed
+summary source=mlit-n03 boundary_version=2023-01-01 source_features=118 wards=23 normalization_version=mlit-n03-boundary-geojson-v1 received=118 imported=0 updated=23 duplicates_skipped=118 rejected=0 warning_records=0 status=completed
+areas=23 boundaries=23 raw_records=118 ward_codes=23 valid_multipolygons=23 transaction_locations=0
+```
 
 ---
 

@@ -13,24 +13,25 @@ The parser currently targets the committed official-source fixtures under:
 workers/importer/fixtures/transactions/
 ```
 
-Phase 03 Slice 1 adds the selected official boundary fixture under:
+Phase 03 Slice 3 adds the selected official boundary fixture importer under:
 
 ```text
 workers/importer/fixtures/boundaries/
 ```
 
-The boundary importer is not implemented yet. Until Slice 3, use the fixture
-validator to prove the selected source artifact and committed subset are
-well-formed:
+Use the fixture validator to prove the selected source artifact and committed
+subset are well-formed:
 
 ```bash
 bash scripts/validate-boundary-fixture.sh
 ```
 
 The boundary fixture contains 118 MLIT N03 source polygon features across the
-23 Tokyo special-ward administrative codes. Slice 3 should store these boundary
-features through the existing lineage tables before upserting governed ward
-areas and boundary geometries.
+23 Tokyo special-ward administrative codes. The Slice 3 boundary importer stores
+those 118 source features through `raw_records`, upserts one governed `ward`
+area per administrative code, dissolves source polygons into one SRID 4326
+`MultiPolygon` boundary per ward through PostGIS, and keeps existing MLIT CSV
+transaction observations at `location_precision=unknown` with null geometry.
 
 ## Fixture Import Command
 
@@ -97,6 +98,52 @@ Expected output is one line per fixture artifact plus a summary. It includes
 artifact filename, import-run ID, terminal status, and counters for received,
 imported, updated, duplicates skipped, rejected, and warning records. It does
 not print full raw payload JSON or secrets.
+
+## Boundary Import Command
+
+Use the stable wrapper after the local Compose stack is running:
+
+```bash
+./scripts/import-boundaries.sh
+```
+
+The wrapper runs:
+
+```bash
+cargo run -p urbanlens-importer -- import-ward-boundaries
+```
+
+in the pinned Rust Docker image by default. It joins the `urbanlens_default`
+Compose network and connects to:
+
+```text
+postgres://urbanlens:urbanlens_dev@postgres:5432/urbanlens
+```
+
+The script is repeat-safe and accepts environment overrides:
+
+```text
+IMPORT_BOUNDARY_SOURCE=mlit-n03
+IMPORT_BOUNDARY_FIXTURE_PATH=workers/importer/fixtures/boundaries/mlit-n03-tokyo-23-wards-2023.geojson
+IMPORT_BOUNDARY_NORMALIZATION_VERSION=mlit-n03-boundary-geojson-v1
+IMPORT_BOUNDARY_VERSION=2023-01-01
+IMPORTER_DOCKER_NETWORK=urbanlens_default
+DATABASE_URL=postgres://urbanlens:urbanlens_dev@postgres:5432/urbanlens
+IMPORTER_RUNTIME=docker
+```
+
+Set `IMPORTER_RUNTIME=host` only when host Rust is installed; that mode defaults
+to the host-mapped database URL:
+
+```text
+postgres://urbanlens:urbanlens_dev@localhost:5432/urbanlens
+```
+
+The boundary import preserves source-feature lineage without exposing full raw
+payload JSON in ordinary product APIs. Dissolved ward boundaries keep
+`import_run_id`, `dataset_id`, `source_id`, administrative code, label, version,
+and a stable ward-level `source_record_hash`; the 118 original source features
+remain in `raw_records`.
 
 ## MLIT CSV Parser
 
@@ -196,6 +243,9 @@ Current behavior:
   `location_precision=unknown` and no geometry for CSV rows;
 - reports counters for received, imported, updated, duplicate skipped,
   rejected, and warning records.
+- persists MLIT N03 boundary source features as raw records and upserts one
+  current ward boundary per administrative code using PostGIS geometry
+  dissolution.
 
 Duplicate fixture rows from the same dataset artifact and source position are
 reported as skipped. The original raw-record/import-run lineage is preserved
@@ -204,6 +254,37 @@ rather than reassigned to a later retry run.
 Slice 3 also adds migration
 `202606290002_add_lineage_upsert_keys.sql`, which gives the repository durable
 upsert keys for `data_sources` and `datasets`.
+
+Phase 03 Slice 3 adds migration
+`202607020002_allow_aggregate_boundary_import_lineage.sql`, which permits a
+dissolved `area_boundaries` row to keep an `import_run_id` without pretending it
+has a single originating `raw_record_id`. The exact source polygon features are
+still preserved as individual raw records.
+
+## Boundary Import Verification
+
+On `2026-07-02`, with an isolated Compose stack
+`COMPOSE_PROJECT_NAME=urbanlens_slice3_smoke` healthy and six migrations
+applied:
+
+```text
+./scripts/import-boundaries.sh
+summary source=mlit-n03 boundary_version=2023-01-01 source_features=118 wards=23 normalization_version=mlit-n03-boundary-geojson-v1 received=118 imported=23 updated=0 duplicates_skipped=0 rejected=0 warning_records=0 status=completed
+
+./scripts/import-boundaries.sh
+summary source=mlit-n03 boundary_version=2023-01-01 source_features=118 wards=23 normalization_version=mlit-n03-boundary-geojson-v1 received=118 imported=0 updated=23 duplicates_skipped=118 rejected=0 warning_records=0 status=completed
+```
+
+Database count check after the two runs:
+
+```text
+areas=23
+area_boundaries=23
+raw_records=118
+distinct ward_codes=23
+valid SRID 4326 MultiPolygons=23
+transaction locations with geometry=0
+```
 
 ## Slice 4 Verification
 

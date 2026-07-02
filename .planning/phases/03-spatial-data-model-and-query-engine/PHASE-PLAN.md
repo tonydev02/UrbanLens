@@ -39,7 +39,7 @@ The first analyst workflow starts from a Tokyo map. Analysts need confidence tha
 
 - [x] Select, document, and fixture a legally usable official Tokyo ward boundary source.
 - [x] Add or adapt `areas` and `area_boundaries` schema for ward identity, polygons, source lineage, and source-record hashes.
-- [ ] Import the Tokyo 23 special ward boundaries into PostGIS through a small repeat-safe importer path.
+- [x] Import the Tokyo 23 special ward boundaries into PostGIS through a small repeat-safe importer path.
 - [x] Add GiST spatial indexes for `area_boundaries.geometry` and mappable `transaction_location_contexts.location`.
 - [ ] Implement SQLx query functions for ward containment, viewport intersection, proximity to a supplied point, counts by ward, and area-level aggregate metrics.
 - [ ] Add bounded GraphQL queries: `areas`, `transactionObservations`, and `marketMapViewport`.
@@ -260,18 +260,39 @@ Persist official ward boundaries repeatably before exposing any product queries.
 
 **Tasks**
 
-- [ ] Add parser/importer code for the selected boundary fixture.
-- [ ] Normalize ward labels, area type, administrative code, geometry, source record hash, and source metadata.
-- [ ] Upsert `areas` and `area_boundaries` idempotently.
-- [ ] Preserve source lineage through `data_sources` / `datasets` / `import_runs` / `raw_records` where selected in Slice 1.
-- [ ] Add importer tests for feature count, geometry validation, duplicate rerun behavior, and source-record hash stability.
-- [ ] Add a stable local script if the command is not covered by `scripts/import-fixture.sh`.
+- [x] Add parser/importer code for the selected boundary fixture.
+- [x] Normalize ward labels, area type, administrative code, geometry, source record hash, and source metadata.
+- [x] Upsert `areas` and `area_boundaries` idempotently.
+- [x] Preserve source lineage through `data_sources` / `datasets` / `import_runs` / `raw_records` where selected in Slice 1.
+- [x] Add importer tests for feature count, geometry validation, duplicate rerun behavior, and source-record hash stability.
+- [x] Add a stable local script if the command is not covered by `scripts/import-fixture.sh`.
 
 **Expected Evidence**
 
-- [ ] First run imports all Tokyo special wards.
-- [ ] Second run does not create duplicate areas or boundary rows.
-- [ ] Imported geometries can be queried by administrative code and label.
+- [x] First run imports all Tokyo special wards.
+- [x] Second run does not create duplicate areas or boundary rows.
+- [x] Imported geometries can be queried by administrative code and label.
+
+**Slice 3 Result — 2026-07-02**
+
+Implemented `workers/importer/src/boundaries.rs`,
+`urbanlens-importer import-ward-boundaries`, and
+`scripts/import-boundaries.sh`. The importer parses the MLIT N03 GeoJSON
+fixture, validates the 118 source polygon features and 23 special-ward codes,
+preserves every source feature in `raw_records`, upserts one governed `ward`
+area per administrative code, and uses PostGIS to dissolve source polygons into
+one current SRID 4326 multipolygon `area_boundaries` row per ward. The additive
+migration `202607020002_allow_aggregate_boundary_import_lineage.sql` allows a
+dissolved boundary to keep import-run lineage without pretending it has a
+single originating raw record.
+
+Validation passed with `corepack pnpm check` and isolated Compose smoke. On
+`COMPOSE_PROJECT_NAME=urbanlens_slice3_smoke`, the first
+`./scripts/import-boundaries.sh` run imported 23 ward boundaries from 118 source
+features; the second run skipped 118 duplicate raw features and updated the
+same 23 boundary rows. Database checks confirmed 23 areas, 23 boundaries, 118
+raw records, 23 distinct ward codes, 23 valid SRID 4326 multipolygons, and zero
+transaction location geometries.
 
 ---
 

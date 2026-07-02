@@ -272,9 +272,11 @@ for this schema, and Slice 6 verifies the end-to-end fixture workflow:
   `source_code`, `name`, and optional geometry columns for compatibility.
 - `area_boundaries` stores versioned ward boundary multipolygons separately
   from area identity. Each boundary records area/source/dataset lineage,
-  optional import-run/raw-record lineage, administrative code, labels,
+  import-run lineage, optional raw-record lineage, administrative code, labels,
   `source_record_hash`, `boundary_version`, `location_precision='ward_polygon'`,
-  and an SRID 4326 `MultiPolygon` geometry.
+  and an SRID 4326 `MultiPolygon` geometry. Dissolved ward boundaries aggregate
+  multiple source polygon features, so they keep `import_run_id` while the
+  originating source features remain individually preserved in `raw_records`.
 - `validation_issues.transaction_observation_id` can link warning issues to a
   normalized observation.
 - The committed MLIT transaction CSV fixtures import as 666 raw records and 666
@@ -314,6 +316,9 @@ Important constraints:
 - area boundaries require valid SRID 4326 multipolygon geometry, one current
   boundary per area, non-blank ward identity fields, and hex source-record
   hashes. Invalid SRIDs or point geometries are rejected by the database.
+  Aggregate boundary lineage permits `import_run_id` without a single
+  `raw_record_id`; when `raw_record_id` is present, an import run must also be
+  present.
 - spatial lookup is backed by GiST indexes on `areas.geometry`,
   `area_boundaries.geometry`, and `transaction_location_contexts.location`.
 - common transaction filters are backed by btree indexes for ward code, period,
@@ -349,8 +354,14 @@ Contract for subsequent Phase 03 slices:
   implementation so area boundaries can be traced to the exact source feature,
   fixture checksum, and import run.
 
-Slice 2 adds the physical area/boundary schema for this contract. The importer
-should upsert one `areas` row per special-ward administrative code and then
-write one current `area_boundaries` row per governed ward boundary version.
-The committed N03 source parts may be dissolved into ward multipolygons before
-insert, but the raw source features still need lineage through `raw_records`.
+Slice 2 adds the physical area/boundary schema for this contract. Slice 3 adds
+the importer that upserts one `areas` row per special-ward administrative code
+and then writes one current `area_boundaries` row per governed ward boundary
+version. The committed N03 source parts are dissolved into ward multipolygons
+inside PostGIS before insert, while the raw source features retain lineage
+through `raw_records`.
+
+Slice 3 verification on `2026-07-02` imported 118 raw source features into 23
+ward areas and 23 SRID 4326 valid multipolygon boundaries. A repeat import
+skipped the 118 duplicate raw features and updated the same 23 boundary rows.
+No transaction observation gained point geometry during boundary import.

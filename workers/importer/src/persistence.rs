@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::boundaries::{BoundaryFeature, WardBoundary};
 use crate::mlit::{
     AreaValue, AssetType, LocationPrecision, MlitSourceRow, NormalizedRecord,
     NormalizedTransactionObservation, PriceCategory, ValidationIssue, ValidationSeverity,
@@ -19,6 +20,8 @@ pub enum PersistenceError {
     SourcePositionOutOfRange(usize),
     #[error("record count {0} does not fit in database integer range")]
     RecordCountOutOfRange(usize),
+    #[error("boundary feature count {0} does not fit in database integer range")]
+    BoundaryFeatureCountOutOfRange(usize),
     #[error("database persistence failed")]
     Database(#[from] sqlx::Error),
 }
@@ -41,6 +44,18 @@ impl DataSourceInput {
             source_url: "https://www.reinfolib.mlit.go.jp/realEstatePrices/".to_owned(),
             license_url: "https://www.reinfolib.mlit.go.jp/help/termsOfUse/".to_owned(),
             metadata_verified_at: "2026-06-24T00:00:00Z".to_owned(),
+        }
+    }
+
+    #[must_use]
+    pub fn mlit_n03_administrative_areas() -> Self {
+        Self {
+            name: "MLIT National Land Numerical Information administrative areas N03".to_owned(),
+            publisher: "Ministry of Land, Infrastructure, Transport and Tourism".to_owned(),
+            source_url: "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-v3_1.html"
+                .to_owned(),
+            license_url: "https://nlftp.mlit.go.jp/ksj/other/agreement.html".to_owned(),
+            metadata_verified_at: "2026-07-02T03:03:00Z".to_owned(),
         }
     }
 }
@@ -108,6 +123,25 @@ pub struct PersistedRecord {
     pub observation_id: Option<Uuid>,
     pub write: ObservationWrite,
     pub warning_count: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoundaryWrite {
+    Inserted,
+    Updated,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PersistedBoundary {
+    pub area_id: Uuid,
+    pub boundary_id: Uuid,
+    pub write: BoundaryWrite,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PersistedRawBoundaryFeature {
+    pub raw_record_id: Uuid,
+    pub inserted: bool,
 }
 
 /// Creates or updates a publisher-level data source row.
@@ -418,6 +452,241 @@ pub async fn persist_normalized_record(
             .iter()
             .filter(|issue| issue.severity == ValidationSeverity::Warning)
             .count(),
+    })
+}
+
+/// Persists one official boundary source feature as a raw record.
+///
+/// Duplicate source positions for the same dataset are skipped while preserving
+/// the original raw-record/import-run lineage.
+///
+/// # Errors
+///
+/// Returns an error when conversion or database persistence fails.
+pub async fn persist_boundary_raw_feature(
+    pool: &PgPool,
+    dataset_id: Uuid,
+    import_run_id: Uuid,
+    feature: &BoundaryFeature,
+) -> Result<PersistedRawBoundaryFeature, PersistenceError> {
+    let source_position = i64::try_from(feature.source_position)
+        .map_err(|_| PersistenceError::SourcePositionOutOfRange(feature.source_position))?;
+
+    let maybe_raw_id = sqlx::query_scalar::<_, Uuid>(
+        r"
+        INSERT INTO raw_records (
+            dataset_id,
+            import_run_id,
+            source_position,
+            external_id,
+            payload_json,
+            payload_sha256,
+            validation_status,
+            validation_errors
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, 'valid', '[]'::jsonb)
+        ON CONFLICT (dataset_id, source_position) DO NOTHING
+        RETURNING id
+        ",
+    )
+    .bind(dataset_id)
+    .bind(import_run_id)
+    .bind(source_position)
+    .bind(format!(
+        "{}:{}",
+        feature.administrative_code, feature.source_position
+    ))
+    .bind(&feature.payload_json)
+    .bind(&feature.payload_sha256)
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(raw_record_id) = maybe_raw_id {
+        return Ok(PersistedRawBoundaryFeature {
+            raw_record_id,
+            inserted: true,
+        });
+    }
+
+    let raw_record_id = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM raw_records WHERE dataset_id = $1 AND source_position = $2",
+    )
+    .bind(dataset_id)
+    .bind(source_position)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(PersistedRawBoundaryFeature {
+        raw_record_id,
+        inserted: false,
+    })
+}
+
+/// Upserts one governed ward area and its current dissolved boundary geometry.
+///
+/// Geometry dissolution is performed by `PostGIS` from the exact source-feature
+/// geometries so later query behavior matches database spatial semantics.
+///
+/// # Errors
+///
+/// Returns an error if the area or boundary rows cannot be saved.
+#[allow(clippy::too_many_lines)]
+pub async fn upsert_ward_boundary(
+    pool: &PgPool,
+    source_id: Uuid,
+    dataset_id: Uuid,
+    import_run_id: Uuid,
+    boundary_version: &str,
+    ward: &WardBoundary,
+) -> Result<PersistedBoundary, PersistenceError> {
+    let feature_count = i64::try_from(ward.geometries.len())
+        .map_err(|_| PersistenceError::BoundaryFeatureCountOutOfRange(ward.geometries.len()))?;
+    let geometries_json = Value::Array(ward.geometries.clone());
+
+    let mut tx = pool.begin().await?;
+
+    let area_id = sqlx::query_scalar::<_, Uuid>(
+        r"
+        INSERT INTO areas (
+            dataset_id,
+            source_code,
+            name,
+            area_type,
+            geometry,
+            administrative_code,
+            name_ja,
+            source_id
+        )
+        VALUES ($1, $2, $3, 'ward', NULL, $2, $3, $4)
+        ON CONFLICT (area_type, administrative_code) DO UPDATE
+        SET
+            dataset_id = EXCLUDED.dataset_id,
+            source_id = EXCLUDED.source_id,
+            source_code = EXCLUDED.source_code,
+            name = EXCLUDED.name,
+            name_ja = EXCLUDED.name_ja,
+            updated_at = now()
+        RETURNING id
+        ",
+    )
+    .bind(dataset_id)
+    .bind(&ward.administrative_code)
+    .bind(&ward.name_ja)
+    .bind(source_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    let existing_boundary_id = sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM area_boundaries WHERE area_id = $1 AND boundary_version = $2",
+    )
+    .bind(area_id)
+    .bind(boundary_version)
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    let boundary_id = sqlx::query_scalar::<_, Uuid>(
+        r"
+        WITH feature_geometries AS (
+            SELECT ST_SetSRID(ST_GeomFromGeoJSON(value::text), 4326) AS geometry
+            FROM jsonb_array_elements($10::jsonb) AS value
+        ),
+        dissolved AS (
+            SELECT ST_Multi(ST_UnaryUnion(ST_Collect(geometry)))::geometry(MultiPolygon, 4326)
+                AS geometry
+            FROM feature_geometries
+        )
+        INSERT INTO area_boundaries (
+            area_id,
+            source_id,
+            dataset_id,
+            import_run_id,
+            raw_record_id,
+            administrative_code,
+            name_ja,
+            source_record_hash,
+            source_feature_id,
+            source_feature_position,
+            boundary_version,
+            location_precision,
+            geometry,
+            is_current
+        )
+        SELECT
+            $1,
+            $2,
+            $3,
+            $4,
+            NULL,
+            $5,
+            $6,
+            $7,
+            $8,
+            NULL,
+            $9,
+            'ward_polygon',
+            dissolved.geometry,
+            true
+        FROM dissolved
+        ON CONFLICT (area_id, boundary_version) DO UPDATE
+        SET
+            source_id = EXCLUDED.source_id,
+            dataset_id = EXCLUDED.dataset_id,
+            import_run_id = EXCLUDED.import_run_id,
+            administrative_code = EXCLUDED.administrative_code,
+            name_ja = EXCLUDED.name_ja,
+            source_record_hash = EXCLUDED.source_record_hash,
+            source_feature_id = EXCLUDED.source_feature_id,
+            boundary_version = EXCLUDED.boundary_version,
+            location_precision = EXCLUDED.location_precision,
+            geometry = EXCLUDED.geometry,
+            is_current = true,
+            updated_at = now()
+        RETURNING id
+        ",
+    )
+    .bind(area_id)
+    .bind(source_id)
+    .bind(dataset_id)
+    .bind(import_run_id)
+    .bind(&ward.administrative_code)
+    .bind(&ward.name_ja)
+    .bind(&ward.source_record_hash)
+    .bind(format!(
+        "N03_007:{};source_features:{}",
+        ward.administrative_code, feature_count
+    ))
+    .bind(boundary_version)
+    .bind(&geometries_json)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    sqlx::query(
+        r"
+        UPDATE areas
+        SET
+            current_boundary_id = $2,
+            geometry = area_boundaries.geometry,
+            updated_at = now()
+        FROM area_boundaries
+        WHERE areas.id = $1
+            AND area_boundaries.id = $2
+        ",
+    )
+    .bind(area_id)
+    .bind(boundary_id)
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(PersistedBoundary {
+        area_id,
+        boundary_id,
+        write: if existing_boundary_id.is_some() {
+            BoundaryWrite::Updated
+        } else {
+            BoundaryWrite::Inserted
+        },
     })
 }
 
@@ -743,6 +1012,7 @@ mod tests {
     use sqlx::{PgPool, postgres::PgPoolOptions};
 
     use super::*;
+    use crate::boundaries::{MLIT_N03_BOUNDARY_NORMALIZATION_VERSION, parse_mlit_n03_tokyo_wards};
     use crate::mlit::{normalize_source_row, parse_mlit_csv_file, parse_mlit_csv_text};
 
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../apps/api/migrations");
@@ -776,6 +1046,13 @@ mod tests {
         )
     }
 
+    fn boundary_fixture_path() -> String {
+        format!(
+            "{}/fixtures/boundaries/mlit-n03-tokyo-23-wards-2023.geojson",
+            env!("CARGO_MANIFEST_DIR")
+        )
+    }
+
     async fn fixture_dataset(pool: &PgPool, source: &DataSourceRecord) -> DatasetRecord {
         upsert_dataset(
             pool,
@@ -797,6 +1074,29 @@ mod tests {
         )
         .await
         .expect("dataset upsert succeeds")
+    }
+
+    async fn boundary_dataset(pool: &PgPool, source: &DataSourceRecord) -> DatasetRecord {
+        upsert_dataset(
+            pool,
+            &DatasetInput {
+                source_id: source.id,
+                source_dataset_name: format!("MLIT N03 boundary fixture {}", Uuid::new_v4()),
+                retrieval_method: "fixture_geojson".to_owned(),
+                retrieval_query: json!({
+                    "prefecture": "13",
+                    "area_type": "ward",
+                    "fixture": Uuid::new_v4().to_string(),
+                }),
+                source_version: Some("2023-01-01".to_owned()),
+                retrieved_at: "2026-07-02T03:03:00Z".to_owned(),
+                artifact_sha256: "c".repeat(64),
+                format: "geojson; encoding=utf-8; crs=JGD2011/SRID4326-compatible".to_owned(),
+                record_count: 118,
+            },
+        )
+        .await
+        .expect("boundary dataset upsert succeeds")
     }
 
     #[tokio::test]
@@ -967,5 +1267,125 @@ mod tests {
         .await
         .expect("read failed run");
         assert_eq!(failed_status, "failed");
+    }
+
+    #[tokio::test]
+    #[allow(clippy::too_many_lines)]
+    async fn persists_ward_boundaries_and_skips_duplicate_raw_features() {
+        let Some(pool) = test_pool().await else {
+            return;
+        };
+
+        let source_input = DataSourceInput {
+            name: format!("MLIT N03 repository test {}", Uuid::new_v4()),
+            ..DataSourceInput::mlit_n03_administrative_areas()
+        };
+        let source = upsert_data_source(&pool, &source_input)
+            .await
+            .expect("source inserts");
+        let dataset = boundary_dataset(&pool, &source).await;
+        let fixture_bytes = std::fs::read(boundary_fixture_path()).expect("boundary fixture reads");
+        let (features, wards) =
+            parse_mlit_n03_tokyo_wards(&fixture_bytes).expect("boundary fixture parses");
+
+        let first_run =
+            start_import_run(&pool, dataset.id, MLIT_N03_BOUNDARY_NORMALIZATION_VERSION)
+                .await
+                .expect("first run starts");
+        let mut first_raw_inserts = 0;
+        for feature in &features {
+            let persisted = persist_boundary_raw_feature(&pool, dataset.id, first_run.id, feature)
+                .await
+                .expect("raw boundary feature persists");
+            if persisted.inserted {
+                first_raw_inserts += 1;
+            }
+        }
+        assert_eq!(first_raw_inserts, 118);
+
+        let mut first_boundary_inserts = 0;
+        for ward in &wards {
+            let persisted = upsert_ward_boundary(
+                &pool,
+                source.id,
+                dataset.id,
+                first_run.id,
+                "2023-01-01-test",
+                ward,
+            )
+            .await
+            .expect("ward boundary persists");
+            if persisted.write == BoundaryWrite::Inserted {
+                first_boundary_inserts += 1;
+            }
+        }
+        assert_eq!(first_boundary_inserts, 23);
+
+        let second_run =
+            start_import_run(&pool, dataset.id, MLIT_N03_BOUNDARY_NORMALIZATION_VERSION)
+                .await
+                .expect("second run starts");
+        let mut duplicate_raw_features = 0;
+        for feature in &features {
+            let persisted = persist_boundary_raw_feature(&pool, dataset.id, second_run.id, feature)
+                .await
+                .expect("duplicate raw boundary feature skips");
+            if !persisted.inserted {
+                duplicate_raw_features += 1;
+            }
+        }
+        assert_eq!(duplicate_raw_features, 118);
+
+        let mut updated_boundaries = 0;
+        for ward in &wards {
+            let persisted = upsert_ward_boundary(
+                &pool,
+                source.id,
+                dataset.id,
+                second_run.id,
+                "2023-01-01-test",
+                ward,
+            )
+            .await
+            .expect("ward boundary updates");
+            if persisted.write == BoundaryWrite::Updated {
+                updated_boundaries += 1;
+            }
+        }
+        assert_eq!(updated_boundaries, 23);
+
+        let counts: (i64, i64, i64) = sqlx::query_as(
+            r"
+            SELECT
+                (SELECT COUNT(*) FROM raw_records WHERE dataset_id = $1),
+                (SELECT COUNT(*) FROM areas WHERE source_id = $2 AND area_type = 'ward'),
+                (SELECT COUNT(*) FROM area_boundaries WHERE dataset_id = $1)
+            ",
+        )
+        .bind(dataset.id)
+        .bind(source.id)
+        .fetch_one(&pool)
+        .await
+        .expect("boundary counts query");
+        assert_eq!(counts, (118, 23, 23));
+
+        let geometry_check: (i64, i64, bool) = sqlx::query_as(
+            r"
+            SELECT
+                COUNT(*),
+                COUNT(*) FILTER (
+                    WHERE ST_SRID(geometry) = 4326
+                        AND GeometryType(geometry) = 'MULTIPOLYGON'
+                ),
+                bool_and(ST_IsValid(geometry))
+            FROM area_boundaries
+            WHERE dataset_id = $1
+            ",
+        )
+        .bind(dataset.id)
+        .fetch_one(&pool)
+        .await
+        .expect("geometry check query");
+        assert_eq!(geometry_check, (23, 23, true));
     }
 }

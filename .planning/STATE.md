@@ -10,7 +10,7 @@
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
 | Current Milestone | `MVP spatial query foundation` |
 | Current Phase | `03 — Spatial Data Model and Query Engine` |
-| Current Phase Status | `planning` |
+| Current Phase Status | `in_progress` |
 | Project Health | `green` |
 | Last Updated | `2026-07-02` |
 | Primary Owner | `Project owner` |
@@ -24,9 +24,10 @@
 Phase 02 is complete. UrbanLens can import the first official MLIT transaction
 fixture repeatably, preserve raw/source lineage, normalize canonical
 transaction observations, expose bounded GraphQL inspection, and prove
-duplicate-safe reruns plus failed-run visibility. Phase 03 planning now exists
-and the active next step is to select and document the official Tokyo ward
-boundary source.
+duplicate-safe reruns plus failed-run visibility. Phase 03 Slice 1 is complete:
+MLIT National Land Numerical Information `N03` administrative-area data is the
+selected Tokyo ward boundary source, a source-derived 23-ward fixture is
+committed, and the active next step is Slice 2 schema/index work.
 
 ---
 
@@ -39,7 +40,7 @@ boundary source.
 | Plan | `.planning/phases/03-spatial-data-model-and-query-engine/PHASE-PLAN.md` |
 | Status | `.planning/phases/03-spatial-data-model-and-query-engine/PHASE-STATUS.md` |
 | UAT | `.planning/phases/03-spatial-data-model-and-query-engine/PHASE-UAT.md` |
-| Phase Status | `planning` |
+| Phase Status | `in_progress` |
 | Phase Health | `green` |
 
 ### Why This Is the Active Phase
@@ -59,7 +60,7 @@ location transparency.
 > **Do this first when resuming work:**
 
 ```text
-Select and document the official Tokyo ward boundary source for Phase 03 Slice 1, preserving Phase 02's rule that CSV transaction observations remain `location_precision=unknown` unless a defensible geometry source is ingested.
+Inspect the current physical schema and draft the additive Phase 03 Slice 2 migration for `areas` / `area_boundaries`, preserving Phase 02's rule that CSV transaction observations remain `location_precision=unknown` unless a defensible geometry source is ingested.
 ```
 
 ### Resume Sequence
@@ -67,8 +68,8 @@ Select and document the official Tokyo ward boundary source for Phase 03 Slice 1
 1. Read Phase 03 plan/status/UAT, Phase 02 UAT/status, accepted ADRs, and the source/product docs.
 2. Confirm the branch, working tree, and latest commit.
 3. Read the Phase 03 plan, status, and UAT files.
-4. Select and document an official Tokyo ward boundary source before implementing area migrations.
-5. Preserve raw payloads and exact source-artifact lineage where practical for boundary source features.
+4. Use the selected MLIT N03 Tokyo ward boundary fixture as the target for area migrations.
+5. Preserve raw payloads and exact source-artifact lineage for boundary source features through existing lineage tables.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
 7. Preserve the completed Phase 02 parser/normalizer, schema constraints, repository behavior, CLI/script behavior, GraphQL inspection, and UAT evidence while implementing Phase 03 spatial behavior.
 
@@ -97,7 +98,7 @@ Select and document the official Tokyo ward boundary source for Phase 03 Slice 1
 | 00 | Product and Data Discovery | Completed | Green | First source, fixtures, workflow, model, access, and ADRs passed UAT |
 | 01 | Local Platform Foundation | Completed | Green | Web, API, and PostGIS run locally; CI checks are green |
 | 02 | Ingestion and Canonical Data Pipeline | Completed | Green | Official data imports safely and repeatedly |
-| 03 | Spatial Data Model and Query Engine | Planning | Green | Viewport and area filtering work in PostGIS |
+| 03 | Spatial Data Model and Query Engine | In Progress | Green | Viewport and area filtering work in PostGIS |
 | 04 | Analyst Workspace v0.1 | Not Started | Green | Market map works with filters and source details |
 | 05 | Market Metrics and Area Comparison | Not Started | Green | Two areas can be compared transparently |
 | 06 | Provenance, Data Quality, and Import Operations | Not Started | Green | Data lineage and import status are visible |
@@ -111,6 +112,7 @@ Select and document the official Tokyo ward boundary source for Phase 03 Slice 1
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
 | 2026-07-02 | Created Phase 03 plan/status/UAT documents with six small learning slices for official ward boundaries, spatial indexes, importer, SQLx spatial queries, GraphQL API, and docs/UAT closure. | 03 | `.planning/phases/03-spatial-data-model-and-query-engine/` |
+| 2026-07-02 | Completed Phase 03 Slice 1: selected MLIT N03 administrative-area data as the official Tokyo ward boundary source, committed a validated 23-ward GeoJSON fixture, documented checksum/CRS/feature-count/license limitations, and decided to store boundary raw features through lineage tables. | 03 | `docs/data-sources.md`, `workers/importer/fixtures/boundaries/`, `scripts/validate-boundary-fixture.sh` |
 | 2026-07-02 | Completed Phase 02 Slice 6 and UAT: docs/planning sync, `corepack pnpm check`, web production build, isolated Compose smoke, fixture import/rerun, GraphQL/provenance inspection, raw/observation count checks, honest unknown location precision, controlled failed-run visibility, and retry evidence. | 02 | `PHASE-UAT.md`, `PHASE-STATUS.md`, `docs/importer.md`, `README.md` |
 | 2026-07-02 | Completed Phase 02 Slice 5: bounded GraphQL inspection for imported observations, import runs, validation issues, data sources, and provenance summaries; verified with Docker-backed Rust checks, isolated Compose smoke, fixture import, and live GraphQL queries. | 02 | `apps/api/src/lib.rs`, `apps/api/Cargo.toml`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 4: `import-transactions` CLI, Docker-backed `scripts/import-fixture.sh`, first official fixture import, duplicate-safe rerun, CLI tests, and docs/planning sync. | 02 | `workers/importer/src/main.rs`, `scripts/import-fixture.sh`, `docs/importer.md`, `PHASE-STATUS.md` |

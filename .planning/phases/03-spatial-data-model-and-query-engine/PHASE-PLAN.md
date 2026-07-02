@@ -37,7 +37,7 @@ The first analyst workflow starts from a Tokyo map. Analysts need confidence tha
 
 ### In Scope
 
-- [ ] Select, document, and fixture a legally usable official Tokyo ward boundary source.
+- [x] Select, document, and fixture a legally usable official Tokyo ward boundary source.
 - [ ] Add or adapt `areas` and `area_boundaries` schema for ward identity, polygons, source lineage, and source-record hashes.
 - [ ] Import the Tokyo 23 special ward boundaries into PostGIS through a small repeat-safe importer path.
 - [ ] Add GiST spatial indexes for `area_boundaries.geometry` and mappable `transaction_location_contexts.location`.
@@ -187,16 +187,28 @@ Learn the boundary source before writing schema code: choose an official Tokyo w
 
 **Tasks**
 
-- [ ] Identify the official boundary source and usage terms.
-- [ ] Update `docs/data-sources.md` with source URL, publisher, license, retrieval method, date, version, update frequency, and limitations.
-- [ ] Add a small committed fixture or documented fixture-generation path that covers the Tokyo 23 wards.
-- [ ] Record fixture checksum, feature count, geometry type, encoding/format, CRS/SRID, and administrative-code field.
-- [ ] Decide whether raw boundary features are stored in `raw_records` in Phase 03 or deferred with a documented reason.
+- [x] Identify the official boundary source and usage terms.
+- [x] Update `docs/data-sources.md` with source URL, publisher, license, retrieval method, date, version, update frequency, and limitations.
+- [x] Add a small committed fixture or documented fixture-generation path that covers the Tokyo 23 wards.
+- [x] Record fixture checksum, feature count, geometry type, encoding/format, CRS/SRID, and administrative-code field.
+- [x] Decide whether raw boundary features are stored in `raw_records` in Phase 03 or deferred with a documented reason.
 
 **Expected Evidence**
 
-- [ ] Source documentation is complete enough for a reviewer to verify legality and provenance.
-- [ ] A test or script can read the fixture and confirm 23 ward features with SRID 4326-compatible geometry.
+- [x] Source documentation is complete enough for a reviewer to verify legality and provenance.
+- [x] A test or script can read the fixture and confirm 23 ward codes with SRID 4326-compatible geometry.
+
+**Slice 1 Result — 2026-07-02**
+
+Selected MLIT National Land Numerical Information administrative-area data
+(`N03`) as the official Tokyo ward boundary source. The committed fixture
+`workers/importer/fixtures/boundaries/mlit-n03-tokyo-23-wards-2023.geojson`
+is filtered from official artifact `N03-20230101_13_GML.zip` and preserves 118
+source polygon parts across the 23 Tokyo special-ward administrative codes.
+`bash scripts/validate-boundary-fixture.sh` verifies checksum, feature count,
+ward-code coverage, Tokyo source attribution, polygon geometry, and plausible
+longitude/latitude bounds. Phase 03 will store boundary raw features through
+the existing lineage tables during the importer slice.
 
 ---
 
@@ -389,4 +401,3 @@ Close the phase with evidence a future map can trust.
 - [ ] UAT-04: Ward filtering/counts run through database queries.
 - [ ] UAT-05: GraphQL spatial queries are bounded and expose location transparency.
 - [ ] UAT-06: Existing Phase 02 import/provenance behavior still works.
-

@@ -13,6 +13,25 @@ The parser currently targets the committed official-source fixtures under:
 workers/importer/fixtures/transactions/
 ```
 
+Phase 03 Slice 1 adds the selected official boundary fixture under:
+
+```text
+workers/importer/fixtures/boundaries/
+```
+
+The boundary importer is not implemented yet. Until Slice 3, use the fixture
+validator to prove the selected source artifact and committed subset are
+well-formed:
+
+```bash
+bash scripts/validate-boundary-fixture.sh
+```
+
+The boundary fixture contains 118 MLIT N03 source polygon features across the
+23 Tokyo special-ward administrative codes. Slice 3 should store these boundary
+features through the existing lineage tables before upserting governed ward
+areas and boundary geometries.
+
 ## Fixture Import Command
 
 Use the stable wrapper after the local Compose stack is running:

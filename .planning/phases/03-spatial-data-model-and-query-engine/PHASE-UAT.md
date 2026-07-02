@@ -33,7 +33,7 @@ Verify that UrbanLens can load official Tokyo ward boundaries into PostGIS, use 
 - [ ] Docker Compose is available.
 - [ ] Local PostgreSQL/PostGIS stack can start through the documented Compose command.
 - [ ] Required migrations have been applied.
-- [ ] Official ward boundary fixture is available and documented.
+- [x] Official ward boundary fixture is available and documented.
 - [ ] MLIT transaction fixtures are available under `workers/importer/fixtures/transactions/`.
 - [ ] No MLIT API key is required for required Phase 03 UAT.
 
@@ -41,7 +41,7 @@ Verify that UrbanLens can load official Tokyo ward boundaries into PostGIS, use 
 
 | Data Set / Fixture | Purpose | Setup Command / Location |
 |---|---|---|
-| Official Tokyo ward boundary fixture | Import 23 governed ward polygons into PostGIS. | `TBD during Slice 1` |
+| Official Tokyo ward boundary fixture | Import 23 governed ward polygons into PostGIS. | `workers/importer/fixtures/boundaries/mlit-n03-tokyo-23-wards-2023.geojson`; validate with `bash scripts/validate-boundary-fixture.sh` |
 | MLIT 2024 Q4 transaction fixtures | Regression data for canonical observations and ward/filter behavior. | `workers/importer/fixtures/transactions/` |
 | Controlled spatial query fixture | Tests viewport/proximity behavior with defensible point geometry if needed. | `TBD during Slice 4` |
 
@@ -79,7 +79,7 @@ Verify that the selected official boundary fixture imports into governed area ta
 
 **Preconditions**
 
-- [ ] Boundary source documentation is complete.
+- [x] Boundary source documentation is complete.
 - [ ] Boundary migration has run.
 - [ ] Boundary importer command or script exists.
 
@@ -451,4 +451,3 @@ Add reviewed file paths and command outputs.
 | — | — | — |
 
 ---
-

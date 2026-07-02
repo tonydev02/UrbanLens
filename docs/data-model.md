@@ -142,6 +142,15 @@ Road, planning, coverage-ratio, renovation, and circumstances fields remain trac
 
 An area is an authoritative geographic unit with stable internal identity, source code, label, type, source/version lineage, and optional polygon geometry. Phase 0 recognizes Tokyo wards as the first intended area type but does not select or ingest a boundary dataset.
 
+Phase 03 selects MLIT National Land Numerical Information administrative-area
+data (`N03`) as the first physical boundary source. The committed fixture
+preserves 118 official source polygon parts across the 23 Tokyo special wards.
+The physical importer should upsert one governed `ward` area per `N03_007`
+administrative code while preserving each source feature or dissolved boundary
+version through lineage. Ward polygons use `location_precision=ward_polygon`
+only for area selection and aggregate results; they must not be attached to
+individual transaction observations.
+
 ### `station`
 
 A canonical station eventually requires an authoritative station code, name variants, point geometry, source/version lineage, and railway relationships. The current CSV station name and XPT001 point are source context. They must not create or merge a canonical station by label alone.
@@ -303,3 +312,23 @@ The importer repository preserves the first raw-record lineage on duplicate
 reruns. A later import run that sees the same dataset artifact/source position
 counts that row as a duplicate skip instead of rewriting the raw record's
 original `import_run_id`.
+
+## Phase 03 Boundary Fixture Contract
+
+The selected Tokyo ward boundary fixture lives at
+`workers/importer/fixtures/boundaries/mlit-n03-tokyo-23-wards-2023.geojson`.
+It is derived from MLIT N03 Tokyo artifact `N03-20230101_13_GML.zip`, product
+specification 3.1, data reference date `2023-01-01`.
+
+Contract for subsequent Phase 03 slices:
+
+- the fixture validates with `bash scripts/validate-boundary-fixture.sh`;
+- it contains 118 source polygon features and exactly 23 unique special-ward
+  administrative codes, `13101` through `13123`;
+- `N03_004` is the Japanese ward label and `N03_007` is stored as text
+  administrative identity;
+- source geometries are longitude/latitude polygons compatible with SRID 4326
+  ingestion;
+- boundary raw features should be stored through `raw_records` during importer
+  implementation so area boundaries can be traced to the exact source feature,
+  fixture checksum, and import run.

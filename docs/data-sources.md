@@ -20,7 +20,55 @@
 | Verified | `2026-06-24` |
 | Fixture retrieval | `2026-06-24` |
 
-### Why It Was Selected
+## Selected Spatial Boundary Source
+
+| Field | Value |
+|---|---|
+| Status | `selected_for_phase_03` |
+| Source name | National Land Numerical Information — Administrative Area Data (`国土数値情報 — 行政区域データ`, identifier `N03`) |
+| Publisher | Ministry of Land, Infrastructure, Transport and Tourism (MLIT), Japan |
+| Source URL | <https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N03-v3_1.html> |
+| Source artifact URL | <https://nlftp.mlit.go.jp/ksj/gml/data/N03/N03-2023/N03-20230101_13_GML.zip> |
+| Terms | <https://nlftp.mlit.go.jp/ksj/other/agreement.html> |
+| License / use terms | 2018-and-later N03 data is documented by MLIT as open data under the National Land Numerical Information download-service terms; the source page also notes Geospatial Information Authority of Japan reproduction context for the underlying administrative-boundary material. |
+| Publisher / source materials | MLIT National Land Numerical Information, derived from Geospatial Information Authority of Japan Digital Map (Basic Geospatial Information) administrative-boundary data |
+| Retrieval method | Official MLIT zip download; Phase 03 fixture filters the included Tokyo GeoJSON to special-ward administrative codes `13101` through `13123` |
+| Retrieval date | `2026-07-02 12:03 +09:00` |
+| Dataset version | Product specification 3.1; data reference date `2023-01-01` (`令和5年`) |
+| Update frequency | Periodic administrative-area updates; 2022 and 2023 are published under specification 3.1 on the source page |
+| Original format | Zip containing GeoJSON, Shapefile, GML/JPGIS2014, metadata XML, and PRJ |
+| Fixture format | Filtered GeoJSON FeatureCollection at `workers/importer/fixtures/boundaries/mlit-n03-tokyo-23-wards-2023.geojson` |
+| Original artifact SHA-256 | `5430e29c82e5fa485a63e2b8979f17f2cb6bf95aa5eb8df8cd85a86248bcde50` |
+| Fixture SHA-256 | `42d78e7f93cb63c6d2afdf388e06bab454962fb55a3f9b366148cfdb701595a7` |
+| Feature count | 118 source polygon features across 23 unique Tokyo special-ward codes |
+| CRS / SRID | Source CRS is JGD2011 longitude/latitude (`JGD2011 / (B, L)`); the GeoJSON fixture is longitude/latitude and SRID 4326-compatible for PostGIS ingestion |
+| Geometry type | Polygon source parts; importer may dissolve by `N03_007` into ward multipolygon boundaries |
+| Administrative-code field | `N03_007` |
+
+### Why the Boundary Source Was Selected
+
+N03 is an official, national administrative-boundary dataset with Tokyo
+coverage, administrative codes that align with the MLIT transaction
+municipality codes, publisher-documented geometry/attributes, and a small
+Tokyo-prefecture artifact that can be reduced to a committed 23-ward fixture.
+It supports Phase 03's area-selection and ward-aggregation foundation without
+inventing point locations for Phase 02 CSV observations.
+
+### Boundary Source Limitations
+
+- MLIT notes that some municipal boundaries are unsettled or provisional, and
+  specifically cautions that Tokyo Chiyoda, Chuo, and Minato boundaries may be
+  inaccurate in unsettled areas.
+- Ward polygons are appropriate for governed area identity, selection, and
+  aggregation. They are not transaction or property points.
+- Phase 03 will store raw boundary features in the existing lineage tables
+  during the boundary importer slice so imported polygons remain traceable to
+  the exact source fixture/artifact.
+- CSV/XIT transaction observations remain `location_precision=unknown` with
+  null geometry unless a defensible geometry source is imported for that exact
+  feature.
+
+### Why the Transaction Source Was Selected
 
 It is an official, nationwide historical transaction dataset with Tokyo coverage, documented access routes, reproducible quarter/area filters, commercial reuse, fields useful for price/area/station analysis, and a publisher-provided station-context geometry interface. It directly supports the first analyst workflow without scraping private listing sites.
 
@@ -147,6 +195,7 @@ an isolated local Compose database. The fixture path remains
 | MLIT `成約価格情報` | Deferred | Different provenance, later historical coverage, and possible overlap with transaction-price displays. |
 | Official land-price data | Deferred | It is an appraisal/reference-price domain, not the first historical transaction workflow. |
 | Zoning and urban-planning data | Deferred | Valuable enrichment after reliable transaction ingestion and geography exist. |
+| MLIT National Land Numerical Information `N03` administrative areas | Selected for Phase 03 | Official Tokyo ward polygons with administrative codes, documented CRS/format, and a small committed fixture path for spatial foundations. |
 | Demographic/economic data | Deferred | Contextual enrichment outside the first source boundary. |
 | Railway/station master data | Deferred | Needed later for canonical station identity; XPT001 alone supplies map context for the first design. |
 | Private listing/brokerage sources | Rejected | Outside scope, licensing risk, and not official public transaction evidence. |

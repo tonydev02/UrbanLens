@@ -270,9 +270,70 @@ List queries are capped server-side at 100 rows and default to 25 rows.
 `transactionObservations`, `importRuns`, and `validationIssues` support narrow
 filters for import/dataset/record inspection.
 
-## Next Slice
+## Slice 6 Verification
 
-Slice 6 should finish the Phase 02 documentation/UAT pass, including the formal
-UAT evidence for fixture import, GraphQL inspection, raw-record preservation,
-validation visibility, duplicate-safe reruns, failed-run visibility, and honest
-location precision.
+On `2026-07-02`, Slice 6 was verified against an isolated Compose project:
+
+```text
+COMPOSE_PROJECT_NAME=urbanlens_slice6_uat
+API_PORT=18081
+WEB_PORT=13081
+POSTGRES_PORT=15433
+```
+
+Regression checks:
+
+```text
+corepack pnpm check
+corepack pnpm --filter @urbanlens/web build
+COMPOSE_PROJECT_NAME=urbanlens_slice6_uat API_PORT=18081 WEB_PORT=13081 POSTGRES_PORT=15433 bash scripts/smoke-compose.sh
+```
+
+The full check passed Rust formatting, Clippy, Rust tests, API/importer tests,
+web lint/typecheck, and Vitest. The web production build passed. The isolated
+Compose smoke passed with four successful migrations, healthy services, empty
+lineage/transaction tables before import, and transaction schema contract
+checks.
+
+First fixture import into the isolated stack:
+
+```text
+summary source=mlit prefecture=13 period=2024Q4 artifacts=3 normalization_version=mlit-transaction-csv-v1 received=666 imported=666 updated=0 duplicates_skipped=0 rejected=0 warning_records=0 status=completed
+```
+
+Repeat import against the same fixture bytes:
+
+```text
+summary source=mlit prefecture=13 period=2024Q4 artifacts=3 normalization_version=mlit-transaction-csv-v1 received=666 imported=0 updated=0 duplicates_skipped=666 rejected=0 warning_records=0 status=completed
+```
+
+Count and precision evidence after first import plus duplicate rerun:
+
+```text
+data_sources=1
+datasets=3
+import_runs=6
+raw_records=666
+transaction_observations=666
+validation_issues=0
+unknown_location_contexts=666
+```
+
+Bounded GraphQL inspection returned transaction observations, import-run
+counters, data-source metadata, and an empty validation issue list. The sampled
+observations included `locationPrecision: "unknown"` and no raw payload JSON.
+`transactionObservationProvenance` returned raw-record ID, source position,
+payload SHA-256, import-run status, dataset metadata, artifact checksum, and
+data-source name for the sampled observation.
+
+Failed-run visibility was validated with a temporary isolated-database trigger
+that rejected `raw_records` inserts. The importer exited non-zero with
+`import failed: import persistence failed`, and the database recorded:
+
+```text
+failed|persistence_error|0|0|0|0|0|2024Q4-UAT-FAIL
+```
+
+After the trigger was removed, a normal fixture rerun completed successfully
+with 666 duplicates skipped, proving retry after a controlled persistence
+failure does not require manual data cleanup.

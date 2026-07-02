@@ -250,7 +250,8 @@ Later implementation may expose `high`, `medium`, `low`, or `unknown`, but it mu
 ## Current Physical Schema
 
 Phase 02 Slices 2 and 3 add the first physical observation schema and the
-repository layer that writes through it:
+repository layer that writes through it. Slice 5 adds bounded GraphQL inspection
+for this schema, and Slice 6 verifies the end-to-end fixture workflow:
 
 - `transaction_observations` stores one normalized historical observation per
   originating raw record.
@@ -258,6 +259,14 @@ repository layer that writes through it:
   `location_precision` and optional SRID 4326 geometry.
 - `validation_issues.transaction_observation_id` can link warning issues to a
   normalized observation.
+- The committed MLIT transaction CSV fixtures import as 666 raw records and 666
+  normalized observations with `location_precision='unknown'` and null
+  geometry.
+- Exact-artifact reruns skip duplicate `(dataset_id, source_position)` raw
+  records instead of creating duplicate observations.
+- Default GraphQL inspection exposes lineage IDs, payload hashes, import-run
+  counters, source/dataset metadata, and validation issue summaries, but not
+  raw payload JSON.
 - Slice 5 adds bounded GraphQL inspection for `transaction_observations`,
   `import_runs`, `validation_issues`, `data_sources`, and single-observation
   provenance summaries. These queries expose lineage identifiers, source

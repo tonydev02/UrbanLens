@@ -14,9 +14,14 @@ analyst-facing market exploration rather than property marketplace workflows.
   migration readiness.
 - Docker Compose lifecycle for `postgres`, `migrate`, `api`, and `web`.
 - GitHub Actions workflow and reusable Compose smoke validation.
+- Repeat-safe MLIT transaction fixture importer with raw-record lineage,
+  normalized observations, validation issue storage, and bounded GraphQL
+  inspection.
 
-The map route intentionally contains no fake transaction points or metrics.
-Official transaction data arrives through later ingestion slices.
+The map route intentionally contains no fake transaction points or metrics. The
+first official transaction fixture can be imported locally, but Phase 03 still
+owns spatial query behavior because CSV observations do not include defensible
+map geometry.
 
 ## Architecture
 
@@ -95,6 +100,21 @@ bash scripts/smoke-mlit-api.sh
 
 That diagnostic is intentionally excluded from CI and does not import data.
 
+## Import The MLIT Fixture
+
+After the Compose stack is healthy, import the committed official MLIT
+transaction CSV fixtures:
+
+```bash
+./scripts/import-fixture.sh
+```
+
+The importer writes one import run per CSV artifact, preserves raw records and
+payload hashes, normalizes transaction observations, and is safe to rerun. The
+default fixture path is `workers/importer/fixtures/transactions/`; see
+[docs/importer.md](docs/importer.md) for counters, GraphQL inspection examples,
+and troubleshooting.
+
 ## Data Sources
 
 The first planned source is MLIT real-estate transaction data. Source metadata,
@@ -103,7 +123,8 @@ license notes, retrieval method, and limitations are documented in
 
 ## Known Limitations
 
-- Transaction observation tables exist, but no fixture rows are imported yet.
+- CSV transaction observations import with `location_precision=unknown` and no
+  geometry, so they must not be rendered as property or station points.
 - No live map library or spatial product query is implemented yet.
 - Area metrics, provenance drawers, saved searches, and import operations are
   planned for later MVP phases.

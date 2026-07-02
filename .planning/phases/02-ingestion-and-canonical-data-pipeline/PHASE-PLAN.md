@@ -369,16 +369,35 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 **Tasks**
 
-- [ ] Add `docs/importer.md` with command usage, fixture provenance, validation rules, idempotency model, counters, and troubleshooting.
-- [ ] Update `docs/data-model.md`, `docs/data-sources.md`, `docs/local-development.md`, and README where behavior changes.
-- [ ] Add or document `fixtures/mlit/` as the stable fixture boundary if implementation creates it; otherwise explain why the canonical fixture path remains `workers/importer/fixtures/transactions/`.
-- [ ] Run Rust, web, importer, migration, GraphQL, and Compose smoke checks.
-- [ ] Execute Phase 2 UAT and update planning status/state.
+- [x] Add `docs/importer.md` with command usage, fixture provenance, validation rules, idempotency model, counters, and troubleshooting.
+- [x] Update `docs/data-model.md`, `docs/data-sources.md`, `docs/local-development.md`, and README where behavior changes.
+- [x] Add or document `fixtures/mlit/` as the stable fixture boundary if implementation creates it; otherwise explain why the canonical fixture path remains `workers/importer/fixtures/transactions/`.
+- [x] Run Rust, web, importer, migration, GraphQL, and Compose smoke checks.
+- [x] Execute Phase 2 UAT and update planning status/state.
 
 **Expected Evidence**
 
-- [ ] UAT shows fixture import, raw preservation, normalized observation persistence, validation visibility, duplicate-free rerun, failed-run visibility, and GraphQL inspection.
-- [ ] Planning docs and `.planning/STATE.md` record the Phase 2 completion or exact next action.
+- [x] UAT shows fixture import, raw preservation, normalized observation persistence, validation visibility, duplicate-free rerun, failed-run visibility, and GraphQL inspection.
+- [x] Planning docs and `.planning/STATE.md` record the Phase 2 completion or exact next action.
+
+**Completion Notes — 2026-07-02**
+
+- Updated importer, README, data-source, data-model, Phase 02 status, UAT, and
+  project state documentation for the completed fixture ingestion workflow.
+- Verified `corepack pnpm check`, `corepack pnpm --filter @urbanlens/web build`,
+  and isolated Compose smoke with `COMPOSE_PROJECT_NAME=urbanlens_slice6_uat`.
+- Imported the committed MLIT fixtures into the isolated stack: 3 artifacts, 666
+  received, 666 imported, 0 rejected, and 0 warning records.
+- Re-ran the same fixture import: 666 received, 0 imported, and 666 duplicates
+  skipped.
+- Verified database counts after the duplicate rerun: 1 data source, 3 datasets,
+  6 import runs, 666 raw records, 666 observations, 0 validation issues, and 666
+  unknown/null location contexts.
+- Verified bounded GraphQL inspection and single-observation provenance without
+  exposing raw payload JSON.
+- Verified failed-run visibility with a temporary isolated database trigger that
+  forced a `persistence_error`, then removed the trigger and confirmed a normal
+  retry completed successfully.
 
 ---
 
@@ -455,7 +474,7 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### UAT Criteria
 
-- [ ] Phase 2 UAT proves fixture import, GraphQL inspection, raw-record preservation, validation issue visibility, duplicate-free rerun, failed-run visibility, and honest location precision.
+- [x] Phase 2 UAT proves fixture import, GraphQL inspection, raw-record preservation, validation issue visibility, duplicate-free rerun, failed-run visibility, and honest location precision.
 
 ---
 
@@ -463,8 +482,10 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### Implementation Starting Point
 
-Slices 1, 2, 3, 4, and 5 are complete. Resume with Slice 6 by completing the
-documentation, regression-check, and UAT readiness pass for Phase 02.
+Phase 02 is complete. Resume by starting Phase 03 planning for spatial data
+model and query engine, preserving the Phase 02 boundary that CSV transaction
+observations remain `location_precision=unknown` until a defensible geometry
+source is ingested.
 
 ### Resolved Questions
 

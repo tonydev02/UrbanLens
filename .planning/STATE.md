@@ -10,21 +10,22 @@
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
 | Current Milestone | `MVP ingestion foundation` |
 | Current Phase | `02 — Ingestion and Canonical Data Pipeline` |
-| Current Phase Status | `in_progress` |
+| Current Phase Status | `completed` |
 | Project Health | `green` |
 | Last Updated | `2026-07-02` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `309928c` |
+| Latest Commit | `2d69474` |
 
 ---
 
 ## 1. Current Objective
 
-Implement the first official MLIT fixture import in small slices without
-violating Phase 0 source, lineage, metric, or location-precision decisions.
-Slices 1, 2, 3, 4, and 5 are complete; the active next step is Phase 02
-documentation, regression-check evidence, and UAT readiness.
+Phase 02 is complete. UrbanLens can import the first official MLIT transaction
+fixture repeatably, preserve raw/source lineage, normalize canonical
+transaction observations, expose bounded GraphQL inspection, and prove
+duplicate-safe reruns plus failed-run visibility. The active next step is to
+start Phase 03 planning for spatial data model and query engine.
 
 ---
 
@@ -37,7 +38,7 @@ documentation, regression-check evidence, and UAT readiness.
 | Plan | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-PLAN.md` |
 | Status | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-STATUS.md` |
 | UAT | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-UAT.md` |
-| Phase Status | `in_progress` |
+| Phase Status | `completed` |
 | Phase Health | `green` |
 
 ### Why This Is the Active Phase
@@ -55,18 +56,18 @@ canonical persistence.
 > **Do this first when resuming work:**
 
 ```text
-Begin Slice 6 by completing Phase 02 documentation, regression-check evidence, and UAT readiness.
+Start Phase 03 planning for the spatial data model and query engine, preserving Phase 02's rule that CSV transaction observations remain `location_precision=unknown` unless a defensible geometry source is ingested.
 ```
 
 ### Resume Sequence
 
-1. Read Phase 00 source/product docs, Phase 01 handoff, and accepted ADRs.
+1. Read Phase 00 source/product docs, Phase 01 handoff, accepted ADRs, and Phase 02 UAT/status.
 2. Confirm the branch, working tree, and latest commit.
 3. Read the Phase 02 plan, status, and UAT files.
 4. Confirm the smallest useful ingestion scope remains the committed MLIT transaction fixtures.
 5. Preserve raw payloads and exact source-artifact lineage.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
-7. Preserve the completed Slice 1 parser/normalizer boundary, Slice 2 schema constraints, Slice 3 repository behavior, Slice 4 CLI/script behavior, and Slice 5 GraphQL inspection while preparing Phase 02 UAT evidence.
+7. Preserve the completed Phase 02 parser/normalizer, schema constraints, repository behavior, CLI/script behavior, GraphQL inspection, and UAT evidence while planning Phase 03 spatial behavior.
 
 ---
 
@@ -78,7 +79,7 @@ Begin Slice 6 by completing Phase 02 documentation, regression-check evidence, a
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
 | Backend API | Implemented | Phase 01 | Actix API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API image healthcheck are in place. |
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
-| Ingestion Pipeline | In Progress | Phase 02 | Slice 1 parser/normalizer, Slice 2 schema/database contracts, Slice 3 persistence repositories, Slice 4 CLI/script, and Slice 5 GraphQL inspection are complete; Slice 6 UAT/docs closure is next. |
+| Ingestion Pipeline | Complete | Phase 02 | Parser/normalizer, schema/database contracts, persistence repositories, CLI/script, GraphQL inspection, UAT/docs closure, duplicate rerun, and failed-run visibility are complete. |
 | Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
 | Testing | Complete | Phase 01 | Rust/web/build checks, fresh/existing-volume Compose smoke, failure/recovery UAT, secret checks, and GitHub Actions pass. |
 | Infrastructure / CI | Complete | Phase 01 | Root/infra Compose starts PostGIS, migrate, API, and web; GitHub Actions workflow and reusable smoke script are green. |
@@ -92,8 +93,8 @@ Begin Slice 6 by completing Phase 02 documentation, regression-check evidence, a
 |---:|---|---|---|---|
 | 00 | Product and Data Discovery | Completed | Green | First source, fixtures, workflow, model, access, and ADRs passed UAT |
 | 01 | Local Platform Foundation | Completed | Green | Web, API, and PostGIS run locally; CI checks are green |
-| 02 | Ingestion and Canonical Data Pipeline | Ready for Implementation | Green | Official data imports safely and repeatedly |
-| 03 | Spatial Data Model and Query Engine | Not Started | Green | Viewport and area filtering work in PostGIS |
+| 02 | Ingestion and Canonical Data Pipeline | Completed | Green | Official data imports safely and repeatedly |
+| 03 | Spatial Data Model and Query Engine | Ready for Planning | Green | Viewport and area filtering work in PostGIS |
 | 04 | Analyst Workspace v0.1 | Not Started | Green | Market map works with filters and source details |
 | 05 | Market Metrics and Area Comparison | Not Started | Green | Two areas can be compared transparently |
 | 06 | Provenance, Data Quality, and Import Operations | Not Started | Green | Data lineage and import status are visible |
@@ -106,6 +107,7 @@ Begin Slice 6 by completing Phase 02 documentation, regression-check evidence, a
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-07-02 | Completed Phase 02 Slice 6 and UAT: docs/planning sync, `corepack pnpm check`, web production build, isolated Compose smoke, fixture import/rerun, GraphQL/provenance inspection, raw/observation count checks, honest unknown location precision, controlled failed-run visibility, and retry evidence. | 02 | `PHASE-UAT.md`, `PHASE-STATUS.md`, `docs/importer.md`, `README.md` |
 | 2026-07-02 | Completed Phase 02 Slice 5: bounded GraphQL inspection for imported observations, import runs, validation issues, data sources, and provenance summaries; verified with Docker-backed Rust checks, isolated Compose smoke, fixture import, and live GraphQL queries. | 02 | `apps/api/src/lib.rs`, `apps/api/Cargo.toml`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 4: `import-transactions` CLI, Docker-backed `scripts/import-fixture.sh`, first official fixture import, duplicate-safe rerun, CLI tests, and docs/planning sync. | 02 | `workers/importer/src/main.rs`, `scripts/import-fixture.sh`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 3: source/dataset upsert keys, persistence repositories, raw-record duplicate skipping, observation/location writes, validation issue storage, counters, failed-run visibility, DB-backed repository tests, and fresh-volume Compose smoke. | 02 | `apps/api/migrations/202606290002_add_lineage_upsert_keys.sql`, `workers/importer/src/persistence.rs`, `docs/importer.md`, `PHASE-STATUS.md` |

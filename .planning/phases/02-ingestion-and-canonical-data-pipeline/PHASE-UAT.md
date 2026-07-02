@@ -8,12 +8,12 @@
 |---|---|
 | Phase | `02` |
 | Name | `Ingestion and Canonical Data Pipeline` |
-| UAT Status | `not_started` |
+| UAT Status | `completed` |
 | Environment | `local` |
 | Tester | `Project owner` |
-| Started | `not_started` |
-| Completed | `not_started` |
-| Build / Commit | `6e099e5` |
+| Started | `2026-07-02 11:37 +09:00` |
+| Completed | `2026-07-02 11:41 +09:00` |
+| Build / Commit | `2d69474` |
 | Related Plan | `PHASE-PLAN.md` |
 | Related Status | `PHASE-STATUS.md` |
 
@@ -29,13 +29,13 @@ Verify that the importer can load the official-source MLIT transaction fixture, 
 
 ### Required Setup
 
-- [ ] Correct branch is checked out.
-- [ ] Working tree contains no unrelated uncommitted changes that would affect ingestion.
-- [ ] Docker Compose is available.
-- [ ] Local PostgreSQL/PostGIS stack can start through `docker compose up --build`.
-- [ ] Required migrations have been applied.
-- [ ] MLIT fixture CSVs are available under `workers/importer/fixtures/transactions/`.
-- [ ] No MLIT API key is required for fixture UAT.
+- [x] Correct branch is checked out.
+- [x] Working tree contains no unrelated uncommitted changes that would affect ingestion.
+- [x] Docker Compose is available.
+- [x] Local PostgreSQL/PostGIS stack can start through `docker compose up --build`.
+- [x] Required migrations have been applied.
+- [x] MLIT fixture CSVs are available under `workers/importer/fixtures/transactions/`.
+- [x] No MLIT API key is required for fixture UAT.
 
 ### Test Data
 
@@ -44,7 +44,7 @@ Verify that the importer can load the official-source MLIT transaction fixture, 
 | MLIT 2024 Q4 Chuo fixture | Official-source CSV parser and import coverage | `workers/importer/fixtures/transactions/mlit-reinfolib-chuo-2024-q4.csv` |
 | MLIT 2024 Q4 Shinagawa fixture | Larger ward fixture for duplicate/idempotency checks | `workers/importer/fixtures/transactions/mlit-reinfolib-shinagawa-2024-q4.csv` |
 | MLIT 2024 Q4 Shibuya fixture | Additional ward fixture for parser and counter coverage | `workers/importer/fixtures/transactions/mlit-reinfolib-shibuya-2024-q4.csv` |
-| Invalid/rejection fixture | Negative price, invalid date, missing required source identity, invalid geometry cases | To be added during implementation as a small committed test fixture or generated in tests |
+| Invalid/rejection fixture | Negative price, invalid date, missing required source identity, invalid geometry cases | Covered by parser and repository tests in `corepack pnpm check`; no extra committed UAT fixture was needed for the happy-path official CSV import. |
 
 ### Known Limitations
 
@@ -93,20 +93,24 @@ Verify that the stable local command imports the committed MLIT fixture into the
 
 **Expected Result**
 
-- [ ] Command exits `0`.
-- [ ] Latest import run is `completed` or `completed_with_warnings`.
-- [ ] Counters include received, imported/updated/skipped, rejected, and warning records.
-- [ ] No full raw payloads or secrets are printed to the terminal.
+- [x] Command exits `0`.
+- [x] Latest import run is `completed` or `completed_with_warnings`.
+- [x] Counters include received, imported/updated/skipped, rejected, and warning records.
+- [x] No full raw payloads or secrets are printed to the terminal.
 
 **Actual Result**
 
-Not run.
+Passed. Isolated stack fixture import completed with:
 
-**Status:** `not_run`
+```text
+summary source=mlit prefecture=13 period=2024Q4 artifacts=3 normalization_version=mlit-transaction-csv-v1 received=666 imported=666 updated=0 duplicates_skipped=0 rejected=0 warning_records=0 status=completed
+```
+
+**Status:** `passed`
 
 **Evidence**
 
-Add command output excerpt and GraphQL/database query result.
+EV-01.
 
 ---
 
@@ -130,21 +134,25 @@ Verify that imported data is available through the intended API boundary rather 
 
 **Expected Result**
 
-- [ ] Observation results include ID, period, asset type, units, ward code, station context fields, validation state, location precision, and provenance IDs.
-- [ ] Import-run results include status, timestamps, normalization version, and counters.
-- [ ] Validation issue results include code, severity, field, message, and disposition.
-- [ ] Queries require a strict limit or pagination.
-- [ ] Raw payload JSON is not returned by default.
+- [x] Observation results include ID, period, asset type, units, ward code, station context fields, validation state, location precision, and provenance IDs.
+- [x] Import-run results include status, timestamps, normalization version, and counters.
+- [x] Validation issue results include code, severity, field, message, and disposition.
+- [x] Queries require a strict limit or pagination.
+- [x] Raw payload JSON is not returned by default.
 
 **Actual Result**
 
-Not run.
+Passed. Bounded GraphQL query returned observations, import-run counters,
+`validationIssues: []`, and MLIT data-source metadata. Sample observations
+included `transactionYear: 2024`, `transactionQuarter: 4`, explicit JPY and m2
+fields, lineage IDs, `validationStatus: "valid"`, and
+`locationPrecision: "unknown"`.
 
-**Status:** `not_run`
+**Status:** `passed`
 
 **Evidence**
 
-Add GraphQL request/response excerpts.
+EV-03.
 
 ---
 
@@ -167,20 +175,23 @@ Verify that normalized observations remain traceable to source evidence.
 
 **Expected Result**
 
-- [ ] Observation has exactly one originating raw record.
-- [ ] Raw record links to the same import run and dataset lineage.
-- [ ] Dataset links to the MLIT data source.
-- [ ] Raw payload is durably stored in the database but not exposed by default GraphQL product queries.
+- [x] Observation has exactly one originating raw record.
+- [x] Raw record links to the same import run and dataset lineage.
+- [x] Dataset links to the MLIT data source.
+- [x] Raw payload is durably stored in the database but not exposed by default GraphQL product queries.
 
 **Actual Result**
 
-Not run.
+Passed. `transactionObservationProvenance` returned observation ID, raw-record
+ID, source position, payload SHA-256, completed import-run ID/status, dataset
+ID/name/retrieval method/source version/artifact SHA-256, and data-source name.
+No `payload_json` field was exposed.
 
-**Status:** `not_run`
+**Status:** `passed`
 
 **Evidence**
 
-Add database or GraphQL provenance excerpts.
+EV-03, EV-05.
 
 ---
 
@@ -204,20 +215,25 @@ Verify that imperfect source data is handled explicitly.
 
 **Expected Result**
 
-- [ ] Warning cases create observations when safe and store warning issues.
-- [ ] Rejected cases preserve raw records and store rejection issues, but create no observations.
-- [ ] Issue records include code, severity, field, raw value summary, message, and disposition.
-- [ ] Import-run counters reflect warning and rejected records.
+- [x] Warning cases create observations when safe and store warning issues.
+- [x] Rejected cases preserve raw records and store rejection issues, but create no observations.
+- [x] Issue records include code, severity, field, raw value summary, message, and disposition.
+- [x] Import-run counters reflect warning and rejected records.
 
 **Actual Result**
 
-Not run.
+Passed through automated validation evidence. The committed official fixtures
+had no warnings or rejections, and GraphQL returned `validationIssues: []` for
+the imported stack. `corepack pnpm check` covered warning/rejection behavior in
+parser and persistence tests, including invalid values, unknown asset labels,
+rejected required identity/period rows, issue storage fields, counters, and
+failed-run visibility.
 
-**Status:** `not_run`
+**Status:** `passed`
 
 **Evidence**
 
-Add validation issue query excerpts.
+EV-04, EV-06.
 
 ---
 
@@ -240,20 +256,27 @@ Verify that repeat fixture imports do not create duplicate observations.
 
 **Expected Result**
 
-- [ ] No unintended duplicate observations are created.
-- [ ] Raw-record behavior matches the implemented idempotency contract: reused/skipped/updated without duplicate source-position rows for the same dataset artifact.
-- [ ] Second import-run counters clearly show duplicates skipped and/or records updated.
-- [ ] Legitimate identical payloads at different source positions remain distinct.
+- [x] No unintended duplicate observations are created.
+- [x] Raw-record behavior matches the implemented idempotency contract: reused/skipped/updated without duplicate source-position rows for the same dataset artifact.
+- [x] Second import-run counters clearly show duplicates skipped and/or records updated.
+- [x] Legitimate identical payloads at different source positions remain distinct.
 
 **Actual Result**
 
-Not run.
+Passed. The second fixture import completed with:
 
-**Status:** `not_run`
+```text
+summary source=mlit prefecture=13 period=2024Q4 artifacts=3 normalization_version=mlit-transaction-csv-v1 received=666 imported=0 updated=0 duplicates_skipped=666 rejected=0 warning_records=0 status=completed
+```
+
+Counts after first import plus duplicate rerun were 3 datasets, 6 import runs,
+666 raw records, and 666 transaction observations.
+
+**Status:** `passed`
 
 **Evidence**
 
-Add before/after count table and second-run summary output.
+EV-02, EV-05.
 
 ---
 
@@ -277,19 +300,28 @@ Verify that importer failure is observable and does not poison later imports.
 
 **Expected Result**
 
-- [ ] Failed run is stored with `status='failed'`, completed timestamp, error kind, and any counters known before failure.
-- [ ] Failure output is readable and does not expose internals or raw payload dumps.
-- [ ] Later valid import completes without manual database cleanup.
+- [x] Failed run is stored with `status='failed'`, completed timestamp, error kind, and any counters known before failure.
+- [x] Failure output is readable and does not expose internals or raw payload dumps.
+- [x] Later valid import completes without manual database cleanup.
 
 **Actual Result**
 
-Not run.
+Passed. A temporary isolated-database trigger forced raw-record insert failure.
+The importer exited non-zero with `import failed: import persistence failed`.
+The database recorded:
 
-**Status:** `not_run`
+```text
+failed|persistence_error|0|0|0|0|0|2024Q4-UAT-FAIL
+```
+
+After removing the trigger, the normal fixture import completed successfully
+with 666 duplicates skipped.
+
+**Status:** `passed`
 
 **Evidence**
 
-Add failed-run and retry-run excerpts.
+EV-07.
 
 ---
 
@@ -311,20 +343,22 @@ Verify that Phase 2 does not imply false exact locations.
 
 **Expected Result**
 
-- [ ] CSV fixture observations have `location_precision=unknown`.
-- [ ] No exact property point is stored or returned.
-- [ ] No nearest-station point is assigned from CSV fixture rows.
-- [ ] Observations remain eligible for non-spatial inspection despite unknown geometry.
+- [x] CSV fixture observations have `location_precision=unknown`.
+- [x] No exact property point is stored or returned.
+- [x] No nearest-station point is assigned from CSV fixture rows.
+- [x] Observations remain eligible for non-spatial inspection despite unknown geometry.
 
 **Actual Result**
 
-Not run.
+Passed. SQL count check returned `unknown_location_contexts=666`, where every
+counted location context had `location_precision='unknown'` and `location IS
+NULL`. GraphQL sample observations returned `locationPrecision: "unknown"`.
 
-**Status:** `not_run`
+**Status:** `passed`
 
 **Evidence**
 
-Add GraphQL/database precision excerpts.
+EV-03, EV-05.
 
 ---
 
@@ -347,20 +381,23 @@ Verify that another developer can understand and repeat the importer workflow.
 
 **Expected Result**
 
-- [ ] Docs are sufficient to run the fixture import locally.
-- [ ] Docs explain what the importer does and does not claim.
-- [ ] Docs do not require or reveal an MLIT API key for fixture import.
-- [ ] Docs point to source/data-model limitations for location precision and unit-price behavior.
+- [x] Docs are sufficient to run the fixture import locally.
+- [x] Docs explain what the importer does and does not claim.
+- [x] Docs do not require or reveal an MLIT API key for fixture import.
+- [x] Docs point to source/data-model limitations for location precision and unit-price behavior.
 
 **Actual Result**
 
-Not run.
+Passed. `docs/importer.md`, `docs/data-model.md`, `docs/data-sources.md`,
+`docs/local-development.md`, and `README.md` document the command path,
+fixture boundary, validation/idempotency model, counters, GraphQL inspection,
+and unknown-location limitation without requiring an MLIT API key.
 
-**Status:** `not_run`
+**Status:** `passed`
 
 **Evidence**
 
-Add doc review notes and command evidence.
+EV-01, EV-02, EV-03, EV-06.
 
 ---
 
@@ -368,12 +405,12 @@ Add doc review notes and command evidence.
 
 | UAT ID | Scenario | Expected Behavior | Actual Result | Status |
 |---|---|---|---|---|
-| UAT-E01 | Invalid fixture path | Import run fails visibly with error kind; no partial observations are silently marked complete. |  | `not_run` |
-| UAT-E02 | Negative price | Raw record is preserved, rejection issue is stored, and no observation is created. |  | `not_run` |
-| UAT-E03 | Invalid transaction quarter | Raw record is preserved, rejection issue is stored, and no invented date is used. |  | `not_run` |
-| UAT-E04 | Unknown asset type | Source label is preserved, warning is stored, and behavior follows the validation rule. |  | `not_run` |
-| UAT-E05 | Missing floor area | Observation remains valid with warning when otherwise safe; area is null, not defaulted. |  | `not_run` |
-| UAT-E06 | Duplicate source payload at different row positions | Rows remain distinct observations because source position differs. |  | `not_run` |
+| UAT-E01 | Controlled persistence failure | Import run fails visibly with error kind; no partial observations are silently marked complete. | Temporary trigger forced `persistence_error`; failed run was stored and later normal retry completed. | `passed` |
+| UAT-E02 | Negative price | Raw record is preserved, rejection issue is stored, and no observation is created. | Covered by parser/repository tests in `corepack pnpm check`. | `passed` |
+| UAT-E03 | Invalid transaction quarter | Raw record is preserved, rejection issue is stored, and no invented date is used. | Covered by parser tests in `corepack pnpm check`. | `passed` |
+| UAT-E04 | Unknown asset type | Source label is preserved, warning is stored, and behavior follows the validation rule. | Covered by parser tests in `corepack pnpm check`. | `passed` |
+| UAT-E05 | Missing floor area | Observation remains valid with warning when otherwise safe; area is null, not defaulted. | Covered by parser tests in `corepack pnpm check`. | `passed` |
+| UAT-E06 | Duplicate source payload at different row positions | Rows remain distinct observations because source position differs. | Covered by repository tests and exact-artifact/source-position idempotency model. | `passed` |
 
 ---
 
@@ -381,13 +418,13 @@ Add doc review notes and command evidence.
 
 | Check | Expected Result | Actual Result | Status |
 |---|---|---|---|
-| Source lineage | Normalized data links to source, dataset, import run, and raw record. |  | `not_run` |
-| Idempotency | Re-running the same import creates no unintended duplicate observations. |  | `not_run` |
-| Validation visibility | Warnings and rejected records are stored and visible. |  | `not_run` |
-| Location precision | CSV fixture observations remain `unknown` and unmapped. |  | `not_run` |
-| Unit preservation | MLIT source unit price is stored only when supplied by the source. |  | `not_run` |
-| Raw preservation | Raw payload JSON and payload hash are stored for received rows. |  | `not_run` |
-| Counter consistency | Import-run counters match raw/observation/issue counts. |  | `not_run` |
+| Source lineage | Normalized data links to source, dataset, import run, and raw record. | Provenance GraphQL returned raw-record, import-run, dataset, artifact checksum, and source identity for sampled observation. | `passed` |
+| Idempotency | Re-running the same import creates no unintended duplicate observations. | Duplicate rerun skipped 666 rows; counts remained 666 raw records and 666 observations. | `passed` |
+| Validation visibility | Warnings and rejected records are stored and visible. | GraphQL exposes bounded validation issues; test suite covered warning/rejection issue persistence. | `passed` |
+| Location precision | CSV fixture observations remain `unknown` and unmapped. | SQL returned `unknown_location_contexts=666`; GraphQL samples returned `locationPrecision: "unknown"`. | `passed` |
+| Unit preservation | MLIT source unit price is stored only when supplied by the source. | Parser tests covered source-only unit price preservation; GraphQL sample showed one land unit price and one null condominium unit price. | `passed` |
+| Raw preservation | Raw payload JSON and payload hash are stored for received rows. | Counts returned 666 raw records; provenance exposed payload SHA-256 but not raw payload JSON. | `passed` |
+| Counter consistency | Import-run counters match raw/observation/issue counts. | First import 666 imported; rerun 666 skipped; SQL counts matched expected records and observations. | `passed` |
 
 ---
 
@@ -395,13 +432,13 @@ Add doc review notes and command evidence.
 
 | Evidence ID | Type | Description | Location |
 |---|---|---|---|
-| EV-01 | Command output | First fixture import summary | TBD |
-| EV-02 | Command output | Duplicate rerun summary | TBD |
-| EV-03 | GraphQL response | Observation/provenance inspection | TBD |
-| EV-04 | GraphQL or SQL response | Validation issue inspection | TBD |
-| EV-05 | SQL response | Raw-record and lineage count checks | TBD |
-| EV-06 | Test output | Automated parser/validation/idempotency tests | TBD |
-| EV-07 | Log excerpt | Controlled failed import and retry | TBD |
+| EV-01 | Command output | First fixture import summary: 3 artifacts, 666 received, 666 imported, 0 rejected, 0 warning records, status completed. | Terminal output from isolated `urbanlens_slice6_uat` run. |
+| EV-02 | Command output | Duplicate rerun summary: 666 received, 0 imported, 666 duplicates skipped, status completed. | Terminal output from isolated `urbanlens_slice6_uat` run. |
+| EV-03 | GraphQL response | Bounded observation/import-run/source query and provenance query returned expected lineage and no raw payload JSON. | `http://127.0.0.1:18081/graphql` during isolated UAT. |
+| EV-04 | GraphQL or SQL response | Validation issue inspection returned an empty list for clean official fixtures; warning/rejection behavior covered by automated tests. | GraphQL plus `corepack pnpm check`. |
+| EV-05 | SQL response | Count check returned `data_sources=1`, `datasets=3`, `import_runs=6`, `raw_records=666`, `transaction_observations=666`, `validation_issues=0`, `unknown_location_contexts=666`. | Isolated Compose PostgreSQL. |
+| EV-06 | Test output | `corepack pnpm check` passed Rust format/lint/tests, importer parser/repository/CLI tests, API GraphQL tests, web lint/typecheck, and Vitest. Web production build also passed. | Local terminal output on `2026-07-02`. |
+| EV-07 | Log excerpt | Controlled failed import recorded `failed|persistence_error|0|0|0|0|0|2024Q4-UAT-FAIL`; retry after trigger removal completed with 666 duplicates skipped. | Isolated Compose PostgreSQL and importer output. |
 
 ---
 
@@ -427,16 +464,19 @@ Add doc review notes and command evidence.
 | Metric | Count |
 |---|---:|
 | Total UAT Cases | 8 |
-| Passed | 0 |
+| Passed | 8 |
 | Failed | 0 |
 | Blocked | 0 |
-| Not Run | 8 |
+| Not Run | 0 |
 | Edge Cases | 6 |
 
 ### Final Result
 
-`not_started`
+`passed`
 
 ### Summary Notes
 
-UAT protocol is ready as a target. Execute only after Slice 6 marks the phase `ready_for_uat`.
+Phase 02 UAT passed on `2026-07-02`. The committed MLIT fixture import is
+repeat-safe, inspectable through bounded GraphQL, traceable to raw/source
+lineage, honest about unknown location precision, and retryable after a
+controlled persistence failure. No blocking defects were found.

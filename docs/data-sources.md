@@ -120,6 +120,12 @@ It also exposes `DistrictCode`, whose continuity MLIT does not guarantee across 
 
 The source-provided ¥/m² counts correspond to the land rows in these fixtures. This supports an eligibility-limited metric; it does not support a universal cross-type unit-price calculation.
 
+Phase 02 imports these three committed CSV artifacts through
+`./scripts/import-fixture.sh`. Slice 6 UAT verified 666 received rows, 666 raw
+records, 666 normalized observations, and 666 unknown/null location contexts in
+an isolated local Compose database. The fixture path remains
+`workers/importer/fixtures/transactions/`; the script is the stable entrypoint.
+
 ## Known Limitations and Schema Risks
 
 - Survey response and registration scope create incomplete, non-random coverage.

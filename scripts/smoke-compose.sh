@@ -169,14 +169,17 @@ log "unconfigured CORS origin is not granted"
 
 log "checking database schema foundation"
 assert_psql_true "SELECT COUNT(*) = 2 FROM pg_extension WHERE extname IN ('postgis', 'pgcrypto');" "required extensions exist"
-assert_psql_true "SELECT COUNT(*) FILTER (WHERE success) = 4 AND COUNT(*) FILTER (WHERE NOT success) = 0 FROM _sqlx_migrations;" "SQLx migration ledger is successful"
-assert_psql_true "SELECT COUNT(*) = 8 FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('data_sources', 'datasets', 'import_runs', 'raw_records', 'validation_issues', 'areas', 'transaction_observations', 'transaction_location_contexts');" "lineage and transaction tables exist"
-assert_psql_true "SELECT COALESCE(SUM(row_count), 0) = 0 FROM (SELECT COUNT(*) AS row_count FROM data_sources UNION ALL SELECT COUNT(*) FROM datasets UNION ALL SELECT COUNT(*) FROM import_runs UNION ALL SELECT COUNT(*) FROM raw_records UNION ALL SELECT COUNT(*) FROM validation_issues UNION ALL SELECT COUNT(*) FROM areas UNION ALL SELECT COUNT(*) FROM transaction_observations UNION ALL SELECT COUNT(*) FROM transaction_location_contexts) counts;" "lineage and transaction tables are empty"
+assert_psql_true "SELECT COUNT(*) FILTER (WHERE success) = 5 AND COUNT(*) FILTER (WHERE NOT success) = 0 FROM _sqlx_migrations;" "SQLx migration ledger is successful"
+assert_psql_true "SELECT COUNT(*) = 9 FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('data_sources', 'datasets', 'import_runs', 'raw_records', 'validation_issues', 'areas', 'area_boundaries', 'transaction_observations', 'transaction_location_contexts');" "lineage, area, and transaction tables exist"
+assert_psql_true "SELECT COALESCE(SUM(row_count), 0) = 0 FROM (SELECT COUNT(*) AS row_count FROM data_sources UNION ALL SELECT COUNT(*) FROM datasets UNION ALL SELECT COUNT(*) FROM import_runs UNION ALL SELECT COUNT(*) FROM raw_records UNION ALL SELECT COUNT(*) FROM validation_issues UNION ALL SELECT COUNT(*) FROM areas UNION ALL SELECT COUNT(*) FROM area_boundaries UNION ALL SELECT COUNT(*) FROM transaction_observations UNION ALL SELECT COUNT(*) FROM transaction_location_contexts) counts;" "lineage, area, and transaction tables are empty"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'areas' AND indexname = 'areas_geometry_gix' AND indexdef ILIKE '%WHERE (geometry IS NOT NULL)%');" "partial GiST index exists"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM geometry_columns WHERE f_table_schema = 'public' AND f_table_name = 'areas' AND f_geometry_column = 'geometry' AND type = 'MULTIPOLYGON' AND srid = 4326);" "areas geometry is MultiPolygon SRID 4326"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'raw_records_dataset_position_unique') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'raw_records_import_run_dataset_fk') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'validation_issues_raw_record_import_run_fk') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'transaction_observations_raw_record_unique') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'transaction_location_contexts_precision_geometry_consistent');" "lineage and transaction constraints exist"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'transaction_location_contexts' AND indexname = 'transaction_location_contexts_location_gix' AND indexdef ILIKE '%WHERE (location IS NOT NULL)%');" "transaction location partial GiST index exists"
 assert_psql_true "SELECT EXISTS (SELECT 1 FROM geometry_columns WHERE f_table_schema = 'public' AND f_table_name = 'transaction_location_contexts' AND f_geometry_column = 'location' AND srid = 4326);" "transaction location geometry is SRID 4326"
+assert_psql_true "SELECT EXISTS (SELECT 1 FROM geometry_columns WHERE f_table_schema = 'public' AND f_table_name = 'area_boundaries' AND f_geometry_column = 'geometry' AND type = 'MULTIPOLYGON' AND srid = 4326);" "area boundary geometry is MultiPolygon SRID 4326"
+assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'area_boundaries' AND indexname = 'area_boundaries_geometry_gix') AND EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'areas' AND indexname = 'areas_type_administrative_code_unique') AND EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'transaction_observations' AND indexname = 'transaction_observations_ward_asset_period_idx') AND EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'transaction_observations' AND indexname = 'transaction_observations_trade_price_idx') AND EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'transaction_observations' AND indexname = 'transaction_observations_area_m2_idx') AND EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'transaction_observations' AND indexname = 'transaction_observations_station_walk_minutes_idx');" "area boundary and spatial-filter indexes exist"
+assert_psql_true "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'areas_area_type_known') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'area_boundaries_geometry_valid') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'area_boundaries_location_precision_known') AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'area_boundaries_raw_lineage_all_or_none');" "area and boundary constraints exist"
 
 log "checking transaction schema contracts"
 docker compose exec -T postgres psql -U "$postgres_user" -d "$postgres_db" -v ON_ERROR_STOP=1 <<'SQL'
@@ -187,6 +190,9 @@ DECLARE
     v_import_run_id uuid;
     v_raw_record_id uuid;
     v_observation_id uuid;
+    v_area_id uuid;
+    v_boundary_id uuid;
+    invalid_boundary_accepted boolean;
 BEGIN
     INSERT INTO data_sources (
         name,
@@ -261,6 +267,130 @@ BEGIN
         'valid'
     )
     RETURNING id INTO v_raw_record_id;
+
+    INSERT INTO areas (
+        dataset_id,
+        source_id,
+        source_code,
+        administrative_code,
+        name,
+        name_ja,
+        name_en,
+        area_type
+    )
+    VALUES (
+        v_dataset_id,
+        v_source_id,
+        '13109',
+        '13109',
+        '品川区',
+        '品川区',
+        'Shinagawa',
+        'ward'
+    )
+    RETURNING id INTO v_area_id;
+
+    INSERT INTO area_boundaries (
+        area_id,
+        source_id,
+        dataset_id,
+        import_run_id,
+        raw_record_id,
+        administrative_code,
+        name_ja,
+        name_en,
+        source_record_hash,
+        source_feature_position,
+        boundary_version,
+        geometry
+    )
+    VALUES (
+        v_area_id,
+        v_source_id,
+        v_dataset_id,
+        v_import_run_id,
+        v_raw_record_id,
+        '13109',
+        '品川区',
+        'Shinagawa',
+        repeat('e', 64),
+        1,
+        'contract-test',
+        ST_Multi(ST_GeomFromText(
+            'POLYGON((139.70 35.60,139.71 35.60,139.71 35.61,139.70 35.61,139.70 35.60))',
+            4326
+        ))
+    )
+    RETURNING id INTO v_boundary_id;
+
+    UPDATE areas
+    SET current_boundary_id = v_boundary_id
+    WHERE id = v_area_id;
+
+    invalid_boundary_accepted := false;
+    BEGIN
+        INSERT INTO area_boundaries (
+            area_id,
+            source_id,
+            dataset_id,
+            administrative_code,
+            name_ja,
+            source_record_hash,
+            boundary_version,
+            geometry
+        )
+        VALUES (
+            v_area_id,
+            v_source_id,
+            v_dataset_id,
+            '13109',
+            '品川区',
+            repeat('f', 64),
+            'invalid-srid',
+            ST_Multi(ST_GeomFromText(
+                'POLYGON((139.70 35.60,139.71 35.60,139.71 35.61,139.70 35.61,139.70 35.60))',
+                3857
+            ))
+        );
+        invalid_boundary_accepted := true;
+    EXCEPTION
+        WHEN others THEN
+            NULL;
+    END;
+    IF invalid_boundary_accepted THEN
+        RAISE EXCEPTION 'invalid boundary SRID was accepted';
+    END IF;
+
+    invalid_boundary_accepted := false;
+    BEGIN
+        INSERT INTO area_boundaries (
+            area_id,
+            source_id,
+            dataset_id,
+            administrative_code,
+            name_ja,
+            source_record_hash,
+            boundary_version,
+            geometry
+        )
+        VALUES (
+            v_area_id,
+            v_source_id,
+            v_dataset_id,
+            '13109',
+            '品川区',
+            repeat('0', 64),
+            'invalid-type',
+            ST_SetSRID(ST_MakePoint(139.70, 35.60), 4326)
+        );
+        invalid_boundary_accepted := true;
+    EXCEPTION
+        WHEN others THEN
+            NULL;
+    END;
+    IF invalid_boundary_accepted THEN
+        RAISE EXCEPTION 'invalid boundary geometry type was accepted';
+    END IF;
 
     INSERT INTO transaction_observations (
         raw_record_id,
@@ -366,6 +496,9 @@ BEGIN
 
     DELETE FROM transaction_location_contexts WHERE transaction_observation_id = v_observation_id;
     DELETE FROM transaction_observations WHERE id = v_observation_id;
+    UPDATE areas SET current_boundary_id = NULL WHERE id = v_area_id;
+    DELETE FROM area_boundaries WHERE id = v_boundary_id;
+    DELETE FROM areas WHERE id = v_area_id;
     DELETE FROM raw_records WHERE id = v_raw_record_id;
     DELETE FROM import_runs WHERE id = v_import_run_id;
     DELETE FROM datasets WHERE id = v_dataset_id;

@@ -266,6 +266,15 @@ for this schema, and Slice 6 verifies the end-to-end fixture workflow:
   originating raw record.
 - `transaction_location_contexts` stores the observation's explicit
   `location_precision` and optional SRID 4326 geometry.
+- `areas` stores governed area identity. Phase 03 extends the foundation table
+  with `administrative_code`, `name_ja`, optional `name_en`, source lineage,
+  and a nullable current boundary reference while preserving the original
+  `source_code`, `name`, and optional geometry columns for compatibility.
+- `area_boundaries` stores versioned ward boundary multipolygons separately
+  from area identity. Each boundary records area/source/dataset lineage,
+  optional import-run/raw-record lineage, administrative code, labels,
+  `source_record_hash`, `boundary_version`, `location_precision='ward_polygon'`,
+  and an SRID 4326 `MultiPolygon` geometry.
 - `validation_issues.transaction_observation_id` can link warning issues to a
   normalized observation.
 - The committed MLIT transaction CSV fixtures import as 666 raw records and 666
@@ -302,6 +311,13 @@ Important constraints:
 - `unknown` location precision requires `location IS NULL`;
 - point precision values require point geometry, and ward precision requires
   polygon or multipolygon geometry.
+- area boundaries require valid SRID 4326 multipolygon geometry, one current
+  boundary per area, non-blank ward identity fields, and hex source-record
+  hashes. Invalid SRIDs or point geometries are rejected by the database.
+- spatial lookup is backed by GiST indexes on `areas.geometry`,
+  `area_boundaries.geometry`, and `transaction_location_contexts.location`.
+- common transaction filters are backed by btree indexes for ward code, period,
+  asset type, total price, recorded area, and station walking time.
 
 The schema intentionally does not make `source_record_hash` globally unique.
 Exact-artifact idempotency remains anchored in raw-record lineage
@@ -332,3 +348,9 @@ Contract for subsequent Phase 03 slices:
 - boundary raw features should be stored through `raw_records` during importer
   implementation so area boundaries can be traced to the exact source feature,
   fixture checksum, and import run.
+
+Slice 2 adds the physical area/boundary schema for this contract. The importer
+should upsert one `areas` row per special-ward administrative code and then
+write one current `area_boundaries` row per governed ward boundary version.
+The committed N03 source parts may be dissolved into ward multipolygons before
+insert, but the raw source features still need lineage through `raw_records`.

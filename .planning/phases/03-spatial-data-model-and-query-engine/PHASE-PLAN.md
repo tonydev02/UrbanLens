@@ -38,9 +38,9 @@ The first analyst workflow starts from a Tokyo map. Analysts need confidence tha
 ### In Scope
 
 - [x] Select, document, and fixture a legally usable official Tokyo ward boundary source.
-- [ ] Add or adapt `areas` and `area_boundaries` schema for ward identity, polygons, source lineage, and source-record hashes.
+- [x] Add or adapt `areas` and `area_boundaries` schema for ward identity, polygons, source lineage, and source-record hashes.
 - [ ] Import the Tokyo 23 special ward boundaries into PostGIS through a small repeat-safe importer path.
-- [ ] Add GiST spatial indexes for `area_boundaries.geometry` and mappable `transaction_location_contexts.location`.
+- [x] Add GiST spatial indexes for `area_boundaries.geometry` and mappable `transaction_location_contexts.location`.
 - [ ] Implement SQLx query functions for ward containment, viewport intersection, proximity to a supplied point, counts by ward, and area-level aggregate metrics.
 - [ ] Add bounded GraphQL queries: `areas`, `transactionObservations`, and `marketMapViewport`.
 - [ ] Expose `locationPrecision`, `locationLabel`, and `locationDisclaimer` on geometry-bearing GraphQL records/results.
@@ -220,18 +220,35 @@ Add the minimum database contracts for governed ward identity and spatial lookup
 
 **Tasks**
 
-- [ ] Inspect the current `areas` table from Phase 01 and choose additive migrations.
-- [ ] Add or adapt `areas` and `area_boundaries` fields for ward labels, administrative codes, source lineage, source record hash, and geometry.
-- [ ] Add geometry validity, SRID, type, uniqueness, and lineage constraints where practical.
-- [ ] Add GiST indexes for `area_boundaries.geometry` and `transaction_location_contexts.location`.
-- [ ] Add btree indexes needed for spatial-filter combinations: ward code, period, asset type, price, floor area, and station walk time.
-- [ ] Extend `scripts/smoke-compose.sh` schema assertions for the new tables/indexes.
+- [x] Inspect the current `areas` table from Phase 01 and choose additive migrations.
+- [x] Add or adapt `areas` and `area_boundaries` fields for ward labels, administrative codes, source lineage, source record hash, and geometry.
+- [x] Add geometry validity, SRID, type, uniqueness, and lineage constraints where practical.
+- [x] Add GiST indexes for `area_boundaries.geometry` and `transaction_location_contexts.location`.
+- [x] Add btree indexes needed for spatial-filter combinations: ward code, period, asset type, price, floor area, and station walk time.
+- [x] Extend `scripts/smoke-compose.sh` schema assertions for the new tables/indexes.
 
 **Expected Evidence**
 
-- [ ] Fresh and existing databases migrate successfully.
-- [ ] Smoke checks prove area tables and spatial indexes exist.
-- [ ] Constraint checks reject invalid SRID or geometry type.
+- [x] Fresh and existing databases migrate successfully.
+- [x] Smoke checks prove area tables and spatial indexes exist.
+- [x] Constraint checks reject invalid SRID or geometry type.
+
+**Slice 2 Result — 2026-07-02**
+
+Added additive migration
+`apps/api/migrations/202607020001_add_area_boundaries_spatial_indexes.sql`.
+It preserves the Phase 01 `areas` table while adding explicit governed ward
+identity (`administrative_code`, `name_ja`, optional `name_en`, source lineage,
+and `current_boundary_id`) and introduces `area_boundaries` for versioned
+SRID 4326 ward multipolygons with source/dataset/import/raw-record lineage,
+source-record hashes, current-boundary uniqueness, geometry validity/type
+checks, and GiST indexing. Transaction spatial/filter indexes now cover
+location geometry, ward/asset/period, period, price, floor area, and station
+walk time. `scripts/smoke-compose.sh` now asserts the schema/index contracts
+and probes that invalid boundary SRID and point geometry inserts are rejected.
+`COMPOSE_PROJECT_NAME=urbanlens_slice2_smoke API_PORT=18082 WEB_PORT=13082
+POSTGRES_PORT=15434 bash scripts/smoke-compose.sh` passed on `2026-07-02`
+after adding `/usr/local/bin` to the command PATH for this shell.
 
 ---
 

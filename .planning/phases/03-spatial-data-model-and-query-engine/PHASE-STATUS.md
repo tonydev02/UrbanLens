@@ -12,7 +12,7 @@
 | Health | `green` |
 | Owner | `Project owner` |
 | Started | `2026-07-02` |
-| Last Updated | `2026-07-02 12:05 +09:00` |
+| Last Updated | `2026-07-02 20:09 +09:00` |
 | Target Completion | `TBD` |
 | Current Branch | `main` |
 | Current Commit | `5ac32c4` |
@@ -54,7 +54,7 @@ Implement the spatial backend foundation: official Tokyo ward boundaries, area/b
 
 ## 2. Current Focus
 
-Slice 1 is complete. The official Tokyo ward boundary source is selected and documented, a small source-derived 23-ward fixture is committed, and the active next step is Slice 2 area/boundary schema and spatial indexes.
+Slices 1 and 2 are complete. The official Tokyo ward boundary source is selected and documented, a small source-derived 23-ward fixture is committed, and the area/boundary schema plus spatial/filter indexes are implemented and smoke-verified. The active next step is Slice 3 ward boundary importer persistence.
 
 ## 3. Definition of Done
 
@@ -67,13 +67,13 @@ Phase 03 is done when Tokyo ward boundaries load into PostGIS, spatial indexes e
 | Area | Status | Progress | Notes |
 |---|---|---:|---|
 | Planning | Done | 100% | Plan/status/UAT created and Slice 1 source decision completed. |
-| Design / Architecture | In Progress | 50% | Boundary source and lineage decision are documented; ADR-006 remains a deliverable. |
+| Design / Architecture | In Progress | 60% | Boundary source, lineage decision, and area/boundary database contracts are documented; ADR-006 remains a deliverable. |
 | Backend | Not Started | 0% | SQLx and GraphQL spatial APIs are planned but not implemented. |
-| Database | Not Started | 0% | Area/boundary migrations and indexes are planned but not implemented. |
+| Database | Done for Slice 2 | 35% | Area/boundary migration, geometry constraints, lineage constraints, and spatial/filter indexes are implemented and smoke-verified. |
 | Worker / Ingestion | In Progress | 10% | Boundary fixture and validator exist; importer persistence is planned for Slice 3. |
 | Frontend | Not Started | 0% | No Phase 03 UI implementation planned. |
-| Tests | Not Started | 0% | Spatial and boundary tests are planned. |
-| Documentation | In Progress | 35% | Boundary source, fixture, and lineage decision are documented; spatial strategy/ADR docs remain. |
+| Tests | In Progress | 15% | Compose smoke asserts area/boundary schema, spatial indexes, and invalid-geometry rejection; Slice 2 smoke passed. |
+| Documentation | In Progress | 45% | Boundary source, fixture, lineage decision, and Slice 2 physical schema are documented; spatial strategy/ADR docs remain. |
 | UAT | Not Started | 0% | UAT protocol is drafted but not executable yet. |
 
 ---
@@ -86,6 +86,7 @@ Record outcomes, not just activity.
 |---|---|---|
 | 2026-07-02 | Created Phase 03 planning folder and drafted plan/status/UAT documents from the template, aligned with Phase 02's unknown-location boundary. | `.planning/phases/03-spatial-data-model-and-query-engine/` |
 | 2026-07-02 | Completed Slice 1: selected MLIT N03 administrative-area data as the official Tokyo ward boundary source, committed a 23-ward source-derived GeoJSON fixture, added checksum/coverage validation, and documented boundary lineage/limitations. | `docs/data-sources.md`, `workers/importer/fixtures/boundaries/`, `scripts/validate-boundary-fixture.sh` |
+| 2026-07-02 | Completed Slice 2: added governed area identity fields, versioned `area_boundaries`, geometry/lineage constraints, GiST spatial indexes, transaction filter indexes, and smoke assertions for schema/index/invalid geometry behavior. Docker-backed smoke passed with isolated Compose ports. | `apps/api/migrations/202607020001_add_area_boundaries_spatial_indexes.sql`, `scripts/smoke-compose.sh`, `docs/data-model.md` |
 
 ---
 
@@ -93,9 +94,9 @@ Record outcomes, not just activity.
 
 | Item | Current State | Next Step |
 |---|---|---|
-| Phase 03 planning | Complete | Continue through Slice 2 implementation. |
+| Phase 03 planning | Complete | Continue through Slice 3 implementation. |
 | Boundary source selection | Complete | Use MLIT N03 fixture as the schema/importer target. |
-| Area schema and spatial indexes | Not started | Inspect the current physical schema and draft additive migrations. |
+| Area schema and spatial indexes | Complete | Use these contracts as the target for the Slice 3 boundary importer. |
 | Spatial query strategy | Not started | Draft `docs/spatial-query-strategy.md` during implementation. |
 | ADR-006 | Not started | Write after query approach is confirmed. |
 
@@ -105,7 +106,7 @@ Record outcomes, not just activity.
 
 Keep this short. The first action must be the exact action to take when work resumes.
 
-1. [ ] **Next immediate action:** Inspect the current physical schema and draft the additive Slice 2 migration for `areas` / `area_boundaries`.
+1. [ ] **Next immediate action:** Implement the Slice 3 ward boundary importer against the new `areas` / `area_boundaries` contracts.
 2. [x] Select and document the official Tokyo ward boundary source for Slice 1.
 3. [x] Confirm whether Phase 03 should store boundary raw features in existing lineage tables or document a narrow exception.
 
@@ -173,8 +174,9 @@ Keep this short. The first action must be the exact action to take when work res
 | TypeScript type check | Not Run | Planning-only change. |
 | Frontend tests | Not Run | Planning-only change. |
 | Integration tests | Not Run | Planning-only change. |
-| Docker Compose smoke test | Not Run | Planning-only change. |
 | Boundary fixture validation | Pass | `bash scripts/validate-boundary-fixture.sh` verifies SHA-256, 118 source polygons, 23 Tokyo special-ward codes, polygon geometry, and coordinate bounds. |
+| Smoke script syntax | Pass | `bash -n scripts/smoke-compose.sh` passed on `2026-07-02`. |
+| Docker Compose smoke test | Pass | `PATH="/usr/local/bin:$PATH" COMPOSE_PROJECT_NAME=urbanlens_slice2_smoke API_PORT=18082 WEB_PORT=13082 POSTGRES_PORT=15434 bash scripts/smoke-compose.sh` passed on `2026-07-02`, verifying fresh migrations, area/boundary tables, GiST/filter indexes, and invalid boundary SRID/type rejection. |
 
 ### UAT Status
 
@@ -191,11 +193,11 @@ Keep this short. The first action must be the exact action to take when work res
 
 ### Last Meaningful Change
 
-Slice 1 selected and documented the official MLIT N03 Tokyo ward boundary source and committed a validated 23-ward fixture.
+Slice 2 added and smoke-verified the area/boundary schema and spatial/filter indexes.
 
 ### Current Working Assumption
 
-UrbanLens will add official Tokyo ward polygons from the MLIT N03 fixture and database-level spatial query behavior without assigning point geometry to the existing MLIT CSV observations. Viewport point queries only return records with defensible non-null geometry; ward-level filtering/aggregation may use official ward identity and must disclose its semantics.
+UrbanLens will import official Tokyo ward polygons from the MLIT N03 fixture into `areas` and `area_boundaries` without assigning point geometry to the existing MLIT CSV observations. Viewport point queries only return records with defensible non-null geometry; ward-level filtering/aggregation may use official ward identity and must disclose its semantics.
 
 ### Important Files
 
@@ -204,7 +206,7 @@ UrbanLens will add official Tokyo ward polygons from the MLIT N03 fixture and da
 .planning/phases/03-spatial-data-model-and-query-engine/PHASE-PLAN.md — Phase 03 scope, slices, and acceptance criteria
 .planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-STATUS.md — completed ingestion handoff and unknown-location rule
 docs/data-sources.md — selected MLIT source and future boundary source documentation target
-docs/data-model.md — area, location precision, idempotency, and physical schema boundaries
+docs/data-model.md — area, boundary, location precision, idempotency, and physical schema boundaries
 docs/product-brief.md — first map, filters, metrics, and precision disclaimers
 docs/adr/001-use-postgis-for-spatial-queries.md — accepted PostGIS decision
 docs/adr/004-model-location-precision-explicitly.md — accepted precision decision
@@ -218,7 +220,7 @@ sed -n '1,260p' .planning/phases/03-spatial-data-model-and-query-engine/PHASE-PL
 
 ### Exact Next Technical Step
 
-Inspect the current physical schema and draft additive area/boundary migrations for Slice 2.
+Implement the Slice 3 ward boundary importer against the new area/boundary schema while preserving raw boundary features through existing lineage tables.
 
 ---
 
@@ -244,3 +246,5 @@ Append one concise row whenever the phase changes meaningfully.
 |---|---|---|
 | 2026-07-02 12:00 +09:00 | `planning` | Phase 03 plan/status/UAT documents created from template. |
 | 2026-07-02 12:05 +09:00 | `in_progress` | Slice 1 completed: MLIT N03 boundary source selected, documented, fixture committed, and validator added. |
+| 2026-07-02 13:20 +09:00 | `in_progress` | Slice 2 implementation complete: area/boundary schema, spatial indexes, filter indexes, smoke schema assertions, and docs sync added; Docker-backed validation pending because Docker is unavailable in this shell. |
+| 2026-07-02 20:09 +09:00 | `in_progress` | Slice 2 validation passed after rerunning Compose smoke with `/usr/local/bin` on PATH; focus moves to Slice 3 ward boundary importer. |

@@ -8,14 +8,14 @@
 |---|---|
 | Project | `UrbanLens` |
 | Product | Tokyo commercial real-estate intelligence platform using official public data |
-| Current Milestone | `MVP ingestion foundation` |
-| Current Phase | `02 — Ingestion and Canonical Data Pipeline` |
-| Current Phase Status | `completed` |
+| Current Milestone | `MVP spatial query foundation` |
+| Current Phase | `03 — Spatial Data Model and Query Engine` |
+| Current Phase Status | `planning` |
 | Project Health | `green` |
 | Last Updated | `2026-07-02` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `2d69474` |
+| Latest Commit | `5ac32c4` |
 
 ---
 
@@ -24,8 +24,9 @@
 Phase 02 is complete. UrbanLens can import the first official MLIT transaction
 fixture repeatably, preserve raw/source lineage, normalize canonical
 transaction observations, expose bounded GraphQL inspection, and prove
-duplicate-safe reruns plus failed-run visibility. The active next step is to
-start Phase 03 planning for spatial data model and query engine.
+duplicate-safe reruns plus failed-run visibility. Phase 03 planning now exists
+and the active next step is to select and document the official Tokyo ward
+boundary source.
 
 ---
 
@@ -33,12 +34,12 @@ start Phase 03 planning for spatial data model and query engine.
 
 | Field | Value |
 |---|---|
-| Active Phase | `02 — Ingestion and Canonical Data Pipeline` |
-| Phase Folder | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |
-| Plan | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-PLAN.md` |
-| Status | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-STATUS.md` |
-| UAT | `.planning/phases/02-ingestion-and-canonical-data-pipeline/PHASE-UAT.md` |
-| Phase Status | `completed` |
+| Active Phase | `03 — Spatial Data Model and Query Engine` |
+| Phase Folder | `.planning/phases/03-spatial-data-model-and-query-engine/` |
+| Plan | `.planning/phases/03-spatial-data-model-and-query-engine/PHASE-PLAN.md` |
+| Status | `.planning/phases/03-spatial-data-model-and-query-engine/PHASE-STATUS.md` |
+| UAT | `.planning/phases/03-spatial-data-model-and-query-engine/PHASE-UAT.md` |
+| Phase Status | `planning` |
 | Phase Health | `green` |
 
 ### Why This Is the Active Phase
@@ -46,8 +47,10 @@ start Phase 03 planning for spatial data model and query engine.
 Phase 0 passed all eight UAT cases. Phase 01 is complete: the local platform
 runs with Docker Compose, Docker-backed UAT passed, reusable smoke validation
 exists, and GitHub Actions checked green per user confirmation on
-`2026-06-26`. Phase 02 can now focus on reliable official-source ingestion and
-canonical persistence.
+`2026-06-26`. Phase 02 is complete and provides the canonical transaction
+observation foundation. Phase 03 can now focus on official ward boundaries,
+spatial indexes, PostGIS query behavior, bounded GraphQL spatial APIs, and
+location transparency.
 
 ---
 
@@ -56,18 +59,18 @@ canonical persistence.
 > **Do this first when resuming work:**
 
 ```text
-Start Phase 03 planning for the spatial data model and query engine, preserving Phase 02's rule that CSV transaction observations remain `location_precision=unknown` unless a defensible geometry source is ingested.
+Select and document the official Tokyo ward boundary source for Phase 03 Slice 1, preserving Phase 02's rule that CSV transaction observations remain `location_precision=unknown` unless a defensible geometry source is ingested.
 ```
 
 ### Resume Sequence
 
-1. Read Phase 00 source/product docs, Phase 01 handoff, accepted ADRs, and Phase 02 UAT/status.
+1. Read Phase 03 plan/status/UAT, Phase 02 UAT/status, accepted ADRs, and the source/product docs.
 2. Confirm the branch, working tree, and latest commit.
-3. Read the Phase 02 plan, status, and UAT files.
-4. Confirm the smallest useful ingestion scope remains the committed MLIT transaction fixtures.
-5. Preserve raw payloads and exact source-artifact lineage.
+3. Read the Phase 03 plan, status, and UAT files.
+4. Select and document an official Tokyo ward boundary source before implementing area migrations.
+5. Preserve raw payloads and exact source-artifact lineage where practical for boundary source features.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
-7. Preserve the completed Phase 02 parser/normalizer, schema constraints, repository behavior, CLI/script behavior, GraphQL inspection, and UAT evidence while planning Phase 03 spatial behavior.
+7. Preserve the completed Phase 02 parser/normalizer, schema constraints, repository behavior, CLI/script behavior, GraphQL inspection, and UAT evidence while implementing Phase 03 spatial behavior.
 
 ---
 
@@ -94,7 +97,7 @@ Start Phase 03 planning for the spatial data model and query engine, preserving 
 | 00 | Product and Data Discovery | Completed | Green | First source, fixtures, workflow, model, access, and ADRs passed UAT |
 | 01 | Local Platform Foundation | Completed | Green | Web, API, and PostGIS run locally; CI checks are green |
 | 02 | Ingestion and Canonical Data Pipeline | Completed | Green | Official data imports safely and repeatedly |
-| 03 | Spatial Data Model and Query Engine | Ready for Planning | Green | Viewport and area filtering work in PostGIS |
+| 03 | Spatial Data Model and Query Engine | Planning | Green | Viewport and area filtering work in PostGIS |
 | 04 | Analyst Workspace v0.1 | Not Started | Green | Market map works with filters and source details |
 | 05 | Market Metrics and Area Comparison | Not Started | Green | Two areas can be compared transparently |
 | 06 | Provenance, Data Quality, and Import Operations | Not Started | Green | Data lineage and import status are visible |
@@ -107,6 +110,7 @@ Start Phase 03 planning for the spatial data model and query engine, preserving 
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
+| 2026-07-02 | Created Phase 03 plan/status/UAT documents with six small learning slices for official ward boundaries, spatial indexes, importer, SQLx spatial queries, GraphQL API, and docs/UAT closure. | 03 | `.planning/phases/03-spatial-data-model-and-query-engine/` |
 | 2026-07-02 | Completed Phase 02 Slice 6 and UAT: docs/planning sync, `corepack pnpm check`, web production build, isolated Compose smoke, fixture import/rerun, GraphQL/provenance inspection, raw/observation count checks, honest unknown location precision, controlled failed-run visibility, and retry evidence. | 02 | `PHASE-UAT.md`, `PHASE-STATUS.md`, `docs/importer.md`, `README.md` |
 | 2026-07-02 | Completed Phase 02 Slice 5: bounded GraphQL inspection for imported observations, import runs, validation issues, data sources, and provenance summaries; verified with Docker-backed Rust checks, isolated Compose smoke, fixture import, and live GraphQL queries. | 02 | `apps/api/src/lib.rs`, `apps/api/Cargo.toml`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 4: `import-transactions` CLI, Docker-backed `scripts/import-fixture.sh`, first official fixture import, duplicate-safe rerun, CLI tests, and docs/planning sync. | 02 | `workers/importer/src/main.rs`, `scripts/import-fixture.sh`, `docs/importer.md`, `PHASE-STATUS.md` |
@@ -198,8 +202,9 @@ CI: GitHub Actions
 git status --short
 sed -n '1,260p' .planning/STATE.md
 
-# Read the completed Phase 01 handoff and source/domain decisions
-sed -n '1,260p' .planning/phases/01-local-platform-foundation/PHASE-STATUS.md
+# Read the active phase and source/domain decisions
+sed -n '1,260p' .planning/phases/03-spatial-data-model-and-query-engine/PHASE-PLAN.md
+sed -n '1,220p' .planning/phases/03-spatial-data-model-and-query-engine/PHASE-STATUS.md
 sed -n '1,220p' docs/data-sources.md
 sed -n '1,240p' docs/data-model.md
 ```

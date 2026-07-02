@@ -258,6 +258,11 @@ repository layer that writes through it:
   `location_precision` and optional SRID 4326 geometry.
 - `validation_issues.transaction_observation_id` can link warning issues to a
   normalized observation.
+- Slice 5 adds bounded GraphQL inspection for `transaction_observations`,
+  `import_runs`, `validation_issues`, `data_sources`, and single-observation
+  provenance summaries. These queries expose lineage identifiers, source
+  positions, payload hashes, dataset metadata, and source identity, but do not
+  expose raw payload JSON by default.
 
 Additional Slice 3 idempotency keys:
 

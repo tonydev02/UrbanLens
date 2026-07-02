@@ -16,17 +16,21 @@ use actix_web::{
     middleware::Logger,
     web,
 };
-use async_graphql::{Context, EmptyMutation, EmptySubscription, Object, Schema, SimpleObject};
+use async_graphql::{
+    Context, EmptyMutation, EmptySubscription, InputObject, Object, Result, Schema, SimpleObject,
+};
 use async_graphql_actix_web::{GraphQLRequest, GraphQLResponse};
 use futures_util::future::LocalBoxFuture;
 use serde::Serialize;
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use sqlx::{FromRow, PgPool, postgres::PgPoolOptions};
 use uuid::Uuid;
 
 const DEFAULT_API_HOST: &str = "0.0.0.0";
 const DEFAULT_API_PORT: u16 = 8080;
 const DEFAULT_CORS_ORIGIN: &str = "http://localhost:3000";
 const DEFAULT_MAX_DB_CONNECTIONS: u32 = 5;
+const DEFAULT_GRAPHQL_LIMIT: i64 = 25;
+const MAX_GRAPHQL_LIMIT: i64 = 100;
 const REQUEST_ID_HEADER: &str = "x-request-id";
 
 pub type AppSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;
@@ -312,6 +316,250 @@ impl QueryRoot {
             migrations_applied: state.migrations_applied,
         }
     }
+
+    async fn transaction_observations(
+        &self,
+        context: &Context<'_>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        import_run_id: Option<String>,
+        dataset_id: Option<String>,
+        municipality_code: Option<String>,
+    ) -> Result<Vec<TransactionObservation>> {
+        let pool = context.data_unchecked::<PgPool>();
+        let pagination = Pagination::from_args(limit, offset);
+        let import_run_id = parse_optional_uuid(import_run_id.as_deref(), "importRunId")?;
+        let dataset_id = parse_optional_uuid(dataset_id.as_deref(), "datasetId")?;
+
+        sqlx::query_as::<_, TransactionObservation>(
+            r"
+            SELECT
+                observation.id::text AS id,
+                observation.raw_record_id::text AS raw_record_id,
+                observation.import_run_id::text AS import_run_id,
+                observation.dataset_id::text AS dataset_id,
+                observation.source_record_hash,
+                observation.normalization_version,
+                observation.validation_status,
+                observation.asset_type,
+                observation.raw_asset_type,
+                observation.price_category,
+                observation.transaction_year::integer AS transaction_year,
+                observation.transaction_quarter::integer AS transaction_quarter,
+                observation.trade_price_jpy,
+                observation.source_unit_price_jpy_per_m2,
+                observation.area_m2::text AS area_m2,
+                observation.total_floor_area_m2::text AS total_floor_area_m2,
+                observation.total_floor_area_is_lower_bound,
+                observation.municipality_code,
+                observation.prefecture_name,
+                observation.municipality_name,
+                observation.district_name,
+                observation.nearest_station_name,
+                observation.station_walk_minutes,
+                location.location_precision,
+                location.source_location_label
+            FROM transaction_observations observation
+            LEFT JOIN transaction_location_contexts location
+                ON location.transaction_observation_id = observation.id
+            WHERE ($3::uuid IS NULL OR observation.import_run_id = $3)
+                AND ($4::uuid IS NULL OR observation.dataset_id = $4)
+                AND ($5::text IS NULL OR observation.municipality_code = $5)
+            ORDER BY observation.created_at DESC, observation.id DESC
+            LIMIT $1 OFFSET $2
+            ",
+        )
+        .bind(pagination.limit)
+        .bind(pagination.offset)
+        .bind(import_run_id)
+        .bind(dataset_id)
+        .bind(municipality_code)
+        .fetch_all(pool)
+        .await
+        .map_err(Into::into)
+    }
+
+    async fn import_runs(
+        &self,
+        context: &Context<'_>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        status: Option<String>,
+        dataset_id: Option<String>,
+    ) -> Result<Vec<ImportRun>> {
+        let pool = context.data_unchecked::<PgPool>();
+        let pagination = Pagination::from_args(limit, offset);
+        let dataset_id = parse_optional_uuid(dataset_id.as_deref(), "datasetId")?;
+
+        sqlx::query_as::<_, ImportRun>(
+            r"
+            SELECT
+                import_run.id::text AS id,
+                import_run.dataset_id::text AS dataset_id,
+                to_char(import_run.started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS UTC') AS started_at,
+                to_char(import_run.completed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS UTC') AS completed_at,
+                import_run.status,
+                import_run.normalization_version,
+                import_run.records_received,
+                import_run.records_imported,
+                import_run.records_updated,
+                import_run.duplicates_skipped,
+                import_run.records_rejected,
+                import_run.warning_records,
+                import_run.error_kind,
+                dataset.source_dataset_name,
+                data_source.name AS data_source_name
+            FROM import_runs import_run
+            JOIN datasets dataset ON dataset.id = import_run.dataset_id
+            JOIN data_sources data_source ON data_source.id = dataset.source_id
+            WHERE ($3::text IS NULL OR import_run.status = $3)
+                AND ($4::uuid IS NULL OR import_run.dataset_id = $4)
+            ORDER BY import_run.started_at DESC, import_run.id DESC
+            LIMIT $1 OFFSET $2
+            ",
+        )
+        .bind(pagination.limit)
+        .bind(pagination.offset)
+        .bind(status)
+        .bind(dataset_id)
+        .fetch_all(pool)
+        .await
+        .map_err(Into::into)
+    }
+
+    async fn validation_issues(
+        &self,
+        context: &Context<'_>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+        filter: Option<ValidationIssueFilter>,
+    ) -> Result<Vec<ValidationIssue>> {
+        let pool = context.data_unchecked::<PgPool>();
+        let pagination = Pagination::from_args(limit, offset);
+        let filter = filter.unwrap_or_default();
+        let import_run_id = parse_optional_uuid(filter.import_run_id.as_deref(), "importRunId")?;
+        let raw_record_id = parse_optional_uuid(filter.raw_record_id.as_deref(), "rawRecordId")?;
+        let transaction_observation_id = parse_optional_uuid(
+            filter.transaction_observation_id.as_deref(),
+            "transactionObservationId",
+        )?;
+
+        sqlx::query_as::<_, ValidationIssue>(
+            r"
+            SELECT
+                issue.id::text AS id,
+                issue.import_run_id::text AS import_run_id,
+                issue.raw_record_id::text AS raw_record_id,
+                issue.transaction_observation_id::text AS transaction_observation_id,
+                issue.issue_code,
+                issue.severity,
+                issue.field_name,
+                issue.raw_value_summary,
+                issue.message,
+                issue.disposition,
+                to_char(issue.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS UTC') AS created_at
+            FROM validation_issues issue
+            WHERE ($3::uuid IS NULL OR issue.import_run_id = $3)
+                AND ($4::uuid IS NULL OR issue.raw_record_id = $4)
+                AND ($5::uuid IS NULL OR issue.transaction_observation_id = $5)
+                AND ($6::text IS NULL OR issue.severity = $6)
+                AND ($7::text IS NULL OR issue.issue_code = $7)
+            ORDER BY issue.created_at DESC, issue.id DESC
+            LIMIT $1 OFFSET $2
+            ",
+        )
+        .bind(pagination.limit)
+        .bind(pagination.offset)
+        .bind(import_run_id)
+        .bind(raw_record_id)
+        .bind(transaction_observation_id)
+        .bind(filter.severity)
+        .bind(filter.issue_code)
+        .fetch_all(pool)
+        .await
+        .map_err(Into::into)
+    }
+
+    async fn data_sources(
+        &self,
+        context: &Context<'_>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> Result<Vec<DataSource>> {
+        let pool = context.data_unchecked::<PgPool>();
+        let pagination = Pagination::from_args(limit, offset);
+
+        sqlx::query_as::<_, DataSource>(
+            r"
+            SELECT
+                source.id::text AS id,
+                source.name,
+                source.publisher,
+                source.source_url,
+                source.license_url,
+                to_char(source.metadata_verified_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS UTC') AS metadata_verified_at,
+                COUNT(dataset.id) AS dataset_count
+            FROM data_sources source
+            LEFT JOIN datasets dataset ON dataset.source_id = source.id
+            GROUP BY source.id
+            ORDER BY source.name ASC, source.id ASC
+            LIMIT $1 OFFSET $2
+            ",
+        )
+        .bind(pagination.limit)
+        .bind(pagination.offset)
+        .fetch_all(pool)
+        .await
+        .map_err(Into::into)
+    }
+
+    async fn transaction_observation_provenance(
+        &self,
+        context: &Context<'_>,
+        observation_id: String,
+    ) -> Result<Option<TransactionObservationProvenance>> {
+        let pool = context.data_unchecked::<PgPool>();
+        let observation_id = parse_uuid(&observation_id, "observationId")?;
+
+        sqlx::query_as::<_, TransactionObservationProvenance>(
+            r"
+            SELECT
+                observation.id::text AS observation_id,
+                observation.raw_record_id::text AS raw_record_id,
+                raw_record.source_position,
+                raw_record.external_id,
+                raw_record.payload_sha256,
+                raw_record.validation_status AS raw_record_validation_status,
+                observation.import_run_id::text AS import_run_id,
+                import_run.status AS import_run_status,
+                import_run.normalization_version,
+                observation.dataset_id::text AS dataset_id,
+                dataset.source_dataset_name,
+                dataset.retrieval_method,
+                dataset.retrieval_query::text AS retrieval_query_json,
+                dataset.source_version,
+                dataset.artifact_sha256,
+                dataset.format AS dataset_format,
+                dataset.record_count AS dataset_record_count,
+                to_char(dataset.retrieved_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS UTC') AS dataset_retrieved_at,
+                source.id::text AS data_source_id,
+                source.name AS data_source_name,
+                source.publisher AS data_source_publisher,
+                source.source_url,
+                source.license_url
+            FROM transaction_observations observation
+            JOIN raw_records raw_record ON raw_record.id = observation.raw_record_id
+            JOIN import_runs import_run ON import_run.id = observation.import_run_id
+            JOIN datasets dataset ON dataset.id = observation.dataset_id
+            JOIN data_sources source ON source.id = dataset.source_id
+            WHERE observation.id = $1
+            ",
+        )
+        .bind(observation_id)
+        .fetch_optional(pool)
+        .await
+        .map_err(Into::into)
+    }
 }
 
 #[derive(SimpleObject)]
@@ -320,6 +568,141 @@ struct Connectivity {
     status: String,
     database_reachable: bool,
     migrations_applied: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Pagination {
+    limit: i64,
+    offset: i64,
+}
+
+impl Pagination {
+    fn from_args(limit: Option<i32>, offset: Option<i32>) -> Self {
+        let limit = limit
+            .map_or(DEFAULT_GRAPHQL_LIMIT, i64::from)
+            .clamp(1, MAX_GRAPHQL_LIMIT);
+        let offset = offset.map_or(0, i64::from).max(0);
+
+        Self { limit, offset }
+    }
+}
+
+#[derive(Debug, FromRow, SimpleObject)]
+struct TransactionObservation {
+    id: String,
+    raw_record_id: String,
+    import_run_id: String,
+    dataset_id: String,
+    source_record_hash: String,
+    normalization_version: String,
+    validation_status: String,
+    asset_type: String,
+    raw_asset_type: String,
+    price_category: String,
+    transaction_year: i32,
+    transaction_quarter: i32,
+    trade_price_jpy: Option<i64>,
+    source_unit_price_jpy_per_m2: Option<i64>,
+    area_m2: Option<String>,
+    total_floor_area_m2: Option<String>,
+    total_floor_area_is_lower_bound: bool,
+    municipality_code: String,
+    prefecture_name: String,
+    municipality_name: String,
+    district_name: Option<String>,
+    nearest_station_name: Option<String>,
+    station_walk_minutes: Option<i32>,
+    location_precision: Option<String>,
+    source_location_label: Option<String>,
+}
+
+#[derive(Debug, FromRow, SimpleObject)]
+struct ImportRun {
+    id: String,
+    dataset_id: String,
+    started_at: String,
+    completed_at: Option<String>,
+    status: String,
+    normalization_version: String,
+    records_received: i64,
+    records_imported: i64,
+    records_updated: i64,
+    duplicates_skipped: i64,
+    records_rejected: i64,
+    warning_records: i64,
+    error_kind: Option<String>,
+    source_dataset_name: String,
+    data_source_name: String,
+}
+
+#[derive(Debug, FromRow, SimpleObject)]
+struct ValidationIssue {
+    id: String,
+    import_run_id: String,
+    raw_record_id: Option<String>,
+    transaction_observation_id: Option<String>,
+    issue_code: String,
+    severity: String,
+    field_name: Option<String>,
+    raw_value_summary: Option<String>,
+    message: String,
+    disposition: String,
+    created_at: String,
+}
+
+#[derive(Debug, Default, InputObject)]
+struct ValidationIssueFilter {
+    import_run_id: Option<String>,
+    raw_record_id: Option<String>,
+    transaction_observation_id: Option<String>,
+    severity: Option<String>,
+    issue_code: Option<String>,
+}
+
+#[derive(Debug, FromRow, SimpleObject)]
+struct DataSource {
+    id: String,
+    name: String,
+    publisher: String,
+    source_url: String,
+    license_url: String,
+    metadata_verified_at: String,
+    dataset_count: i64,
+}
+
+#[derive(Debug, FromRow, SimpleObject)]
+struct TransactionObservationProvenance {
+    observation_id: String,
+    raw_record_id: String,
+    source_position: i64,
+    external_id: Option<String>,
+    payload_sha256: String,
+    raw_record_validation_status: String,
+    import_run_id: String,
+    import_run_status: String,
+    normalization_version: String,
+    dataset_id: String,
+    source_dataset_name: String,
+    retrieval_method: String,
+    retrieval_query_json: String,
+    source_version: Option<String>,
+    artifact_sha256: String,
+    dataset_format: String,
+    dataset_record_count: i64,
+    dataset_retrieved_at: String,
+    data_source_id: String,
+    data_source_name: String,
+    data_source_publisher: String,
+    source_url: String,
+    license_url: String,
+}
+
+fn parse_optional_uuid(value: Option<&str>, argument: &'static str) -> Result<Option<Uuid>> {
+    value.map(|raw| parse_uuid(raw, argument)).transpose()
+}
+
+fn parse_uuid(value: &str, argument: &'static str) -> Result<Uuid> {
+    Uuid::parse_str(value).map_err(|_| format!("{argument} must be a valid UUID").into())
 }
 
 fn parse_port(value: Option<String>) -> Result<u16, ConfigError> {
@@ -437,6 +820,50 @@ mod tests {
         .expect_err("wildcard CORS should be rejected");
 
         assert_eq!(error.variable, "CORS_ALLOWED_ORIGINS");
+    }
+
+    #[test]
+    fn graphql_pagination_is_strictly_bounded() {
+        assert_eq!(
+            Pagination::from_args(None, None),
+            Pagination {
+                limit: DEFAULT_GRAPHQL_LIMIT,
+                offset: 0
+            }
+        );
+        assert_eq!(
+            Pagination::from_args(Some(500), Some(-10)),
+            Pagination {
+                limit: MAX_GRAPHQL_LIMIT,
+                offset: 0
+            }
+        );
+        assert_eq!(
+            Pagination::from_args(Some(0), Some(12)),
+            Pagination {
+                limit: 1,
+                offset: 12
+            }
+        );
+    }
+
+    #[actix_web::test]
+    async fn graphql_schema_exposes_bounded_ingestion_inspection() {
+        let pool = PgPoolOptions::new()
+            .connect_lazy("postgres://urbanlens:urbanlens_dev@localhost/urbanlens")
+            .expect("lazy pool should parse database URL");
+        let schema = build_schema(pool);
+        let sdl = schema.sdl();
+
+        assert!(sdl.contains("transactionObservations("));
+        assert!(sdl.contains("importRuns("));
+        assert!(sdl.contains("validationIssues("));
+        assert!(sdl.contains("dataSources("));
+        assert!(sdl.contains("transactionObservationProvenance("));
+        assert!(sdl.contains("limit: Int"));
+        assert!(sdl.contains("locationPrecision"));
+        assert!(sdl.contains("payloadSha256"));
+        assert!(!sdl.contains("payloadJson"));
     }
 
     #[actix_web::test]

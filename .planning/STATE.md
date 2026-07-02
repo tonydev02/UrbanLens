@@ -12,10 +12,10 @@
 | Current Phase | `02 — Ingestion and Canonical Data Pipeline` |
 | Current Phase Status | `in_progress` |
 | Project Health | `green` |
-| Last Updated | `2026-06-29` |
+| Last Updated | `2026-07-02` |
 | Primary Owner | `Project owner` |
 | Current Branch | `main` |
-| Latest Commit | `f72e09e` |
+| Latest Commit | `309928c` |
 
 ---
 
@@ -23,8 +23,8 @@
 
 Implement the first official MLIT fixture import in small slices without
 violating Phase 0 source, lineage, metric, or location-precision decisions.
-Slices 1, 2, 3, and 4 are complete; the active next step is bounded GraphQL
-inspection for imported observations and provenance.
+Slices 1, 2, 3, 4, and 5 are complete; the active next step is Phase 02
+documentation, regression-check evidence, and UAT readiness.
 
 ---
 
@@ -55,7 +55,7 @@ canonical persistence.
 > **Do this first when resuming work:**
 
 ```text
-Begin Slice 5 by adding bounded GraphQL inspection queries for imported observations, import runs, validation issues, data sources, and provenance summaries.
+Begin Slice 6 by completing Phase 02 documentation, regression-check evidence, and UAT readiness.
 ```
 
 ### Resume Sequence
@@ -66,7 +66,7 @@ Begin Slice 5 by adding bounded GraphQL inspection queries for imported observat
 4. Confirm the smallest useful ingestion scope remains the committed MLIT transaction fixtures.
 5. Preserve raw payloads and exact source-artifact lineage.
 6. Keep CSV/XIT observations spatially `unknown` unless a defensible source geometry link exists.
-7. Preserve the completed Slice 1 parser/normalizer boundary, Slice 2 schema constraints, Slice 3 repository behavior, and Slice 4 CLI/script behavior while adding bounded GraphQL inspection.
+7. Preserve the completed Slice 1 parser/normalizer boundary, Slice 2 schema constraints, Slice 3 repository behavior, Slice 4 CLI/script behavior, and Slice 5 GraphQL inspection while preparing Phase 02 UAT evidence.
 
 ---
 
@@ -78,7 +78,7 @@ Begin Slice 5 by adding bounded GraphQL inspection queries for imported observat
 | Architecture | Stable | Phase 00 | ADRs 001–005 accepted. |
 | Backend API | Implemented | Phase 01 | Actix API, SQLx pool, `/health`, `/ready`, GraphQL `connectivity`, request IDs, bounded CORS, and API image healthcheck are in place. |
 | Database / PostGIS | Implemented | Phase 01 | PostGIS service, SQLx migrations, six-table lineage schema, extensions, indexes, and rerun lifecycle are in place. |
-| Ingestion Pipeline | In Progress | Phase 02 | Slice 1 parser/normalizer, Slice 2 schema/database contracts, Slice 3 persistence repositories, and Slice 4 CLI/script are complete; Slice 5 GraphQL inspection is next. |
+| Ingestion Pipeline | In Progress | Phase 02 | Slice 1 parser/normalizer, Slice 2 schema/database contracts, Slice 3 persistence repositories, Slice 4 CLI/script, and Slice 5 GraphQL inspection are complete; Slice 6 UAT/docs closure is next. |
 | Frontend Workspace | Implemented | Phase 01 | Next.js analyst shell, `/market-map`, root redirect, loading/error/not-found states, and browser-visible GraphQL connectivity panel are implemented and tested. |
 | Testing | Complete | Phase 01 | Rust/web/build checks, fresh/existing-volume Compose smoke, failure/recovery UAT, secret checks, and GitHub Actions pass. |
 | Infrastructure / CI | Complete | Phase 01 | Root/infra Compose starts PostGIS, migrate, API, and web; GitHub Actions workflow and reusable smoke script are green. |
@@ -106,8 +106,9 @@ Begin Slice 5 by adding bounded GraphQL inspection queries for imported observat
 
 | Date | Completed Outcome | Phase | Evidence |
 |---|---|---|---|
-| 2026-06-29 | Completed Phase 02 Slice 3: source/dataset upsert keys, persistence repositories, raw-record duplicate skipping, observation/location writes, validation issue storage, counters, failed-run visibility, DB-backed repository tests, and fresh-volume Compose smoke. | 02 | `apps/api/migrations/202606290002_add_lineage_upsert_keys.sql`, `workers/importer/src/persistence.rs`, `docs/importer.md`, `PHASE-STATUS.md` |
+| 2026-07-02 | Completed Phase 02 Slice 5: bounded GraphQL inspection for imported observations, import runs, validation issues, data sources, and provenance summaries; verified with Docker-backed Rust checks, isolated Compose smoke, fixture import, and live GraphQL queries. | 02 | `apps/api/src/lib.rs`, `apps/api/Cargo.toml`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 4: `import-transactions` CLI, Docker-backed `scripts/import-fixture.sh`, first official fixture import, duplicate-safe rerun, CLI tests, and docs/planning sync. | 02 | `workers/importer/src/main.rs`, `scripts/import-fixture.sh`, `docs/importer.md`, `PHASE-STATUS.md` |
+| 2026-06-29 | Completed Phase 02 Slice 3: source/dataset upsert keys, persistence repositories, raw-record duplicate skipping, observation/location writes, validation issue storage, counters, failed-run visibility, DB-backed repository tests, and fresh-volume Compose smoke. | 02 | `apps/api/migrations/202606290002_add_lineage_upsert_keys.sql`, `workers/importer/src/persistence.rs`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 2: canonical transaction/location schema, observation-level validation issue link, lineage/idempotency constraints, precision/geometry constraints, and fresh/existing-volume Compose schema contract validation. | 02 | `apps/api/migrations/202606290001_create_transaction_observation_schema.sql`, `scripts/smoke-compose.sh`, `docs/data-model.md`, `PHASE-STATUS.md` |
 | 2026-06-29 | Completed Phase 02 Slice 1: CP932 MLIT CSV parser, source-row/raw-value preservation, normalization structs, validation issue codes, and six importer tests over all 666 committed fixture rows and edge cases. | 02 | `workers/importer/src/mlit.rs`, `docs/importer.md`, `PHASE-STATUS.md` |
 | 2026-06-27 | Created Phase 02 plan/status/UAT documents with six small implementation slices for the MLIT fixture importer. | 02 | `.planning/phases/02-ingestion-and-canonical-data-pipeline/` |

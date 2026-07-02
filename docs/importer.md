@@ -3,10 +3,9 @@
 ## Current Scope
 
 Phase 02 has completed the pure MLIT transaction CSV parser/normalizer, the
-first canonical PostgreSQL schema for normalized observations, and the Slice 3
-persistence repositories. Slice 4 adds the stable `import-transactions` CLI and
-`scripts/import-fixture.sh` local entrypoint. GraphQL inspection remains
-deferred to Slice 5.
+first canonical PostgreSQL schema for normalized observations, the persistence
+repositories, the stable `import-transactions` CLI, and bounded GraphQL
+inspection for imported records and provenance.
 
 The parser currently targets the committed official-source fixtures under:
 
@@ -209,8 +208,71 @@ transaction_observations=666
 validation_issues=0
 ```
 
+## GraphQL Inspection
+
+Implemented in `apps/api/src/lib.rs`.
+
+The API exposes bounded inspection queries for local verification and later
+analyst-facing workflows:
+
+```graphql
+query Slice5Check {
+  transactionObservations(limit: 25) {
+    id
+    rawRecordId
+    importRunId
+    datasetId
+    transactionYear
+    transactionQuarter
+    assetType
+    tradePriceJpy
+    sourceUnitPriceJpyPerM2
+    areaM2
+    municipalityCode
+    nearestStationName
+    stationWalkMinutes
+    validationStatus
+    locationPrecision
+  }
+  importRuns(limit: 10) {
+    id
+    status
+    recordsReceived
+    recordsImported
+    duplicatesSkipped
+    recordsRejected
+    warningRecords
+    dataSourceName
+  }
+  validationIssues(limit: 25) {
+    id
+    issueCode
+    severity
+    fieldName
+    message
+    disposition
+  }
+  dataSources(limit: 10) {
+    id
+    name
+    publisher
+    datasetCount
+  }
+}
+```
+
+Use `transactionObservationProvenance(observationId: "...")` to inspect the
+lineage summary for one normalized observation. It returns raw-record ID,
+source position, payload hash, import-run status, dataset retrieval metadata,
+artifact checksum, and source identity. It does not return `payload_json`.
+
+List queries are capped server-side at 100 rows and default to 25 rows.
+`transactionObservations`, `importRuns`, and `validationIssues` support narrow
+filters for import/dataset/record inspection.
+
 ## Next Slice
 
-Slice 5 should expose bounded GraphQL inspection for imported observations,
-import runs, validation issues, and provenance summaries without exposing raw
-payload JSON by default.
+Slice 6 should finish the Phase 02 documentation/UAT pass, including the formal
+UAT evidence for fixture import, GraphQL inspection, raw-record preservation,
+validation visibility, duplicate-safe reruns, failed-run visibility, and honest
+location precision.

@@ -11,7 +11,7 @@
 | Status | `in_progress` |
 | Owner | `Project owner` |
 | Created | `2026-06-27` |
-| Last Updated | `2026-06-29` |
+| Last Updated | `2026-07-02` |
 | Target Milestone | `MVP ingestion foundation` |
 | Related ADRs | `docs/adr/001-use-postgis-for-spatial-queries.md`, `002-use-graphql-for-product-api.md`, `003-preserve-raw-source-payloads.md`, `004-model-location-precision-explicitly.md`, `005-use-rust-actix-web-for-api.md` |
 
@@ -45,7 +45,7 @@ This is the first end-to-end proof that UrbanLens can turn imperfect public data
 - [ ] Normalize price, area, quarter, ward, station label/time, asset type, source unit price, and selected source context fields.
 - [ ] Use idempotent upserts based on exact dataset artifact identity plus source row position, with deterministic source-record hashes where no stable external ID exists.
 - [ ] Record import counters for received, imported, updated, duplicates skipped, rejected, and warning records.
-- [ ] Expose bounded GraphQL inspection for imported observations, validation issues, provenance, and import-run status.
+- [x] Expose bounded GraphQL inspection for imported observations, validation issues, provenance, and import-run status.
 - [x] Add `docs/importer.md`, `scripts/import-fixture.sh`, and a stable fixture path or documented wrapper for `fixtures/mlit/`.
 
 ### Out of Scope
@@ -329,16 +329,35 @@ Make imported records visible through the product API boundary without exposing 
 
 **Tasks**
 
-- [ ] Add bounded GraphQL types and queries for transaction observations, import runs, validation issues, data sources, and provenance summaries.
-- [ ] Include units, period, source names, import-run IDs, raw-record IDs/hashes, validation states, and location precision.
-- [ ] Add pagination or strict limits to every list query.
-- [ ] Add resolver tests for bounded results, empty states, and import/provenance linkage.
-- [ ] Update `/ready` or connectivity only if new migration expectations require it.
+- [x] Add bounded GraphQL types and queries for transaction observations, import runs, validation issues, data sources, and provenance summaries.
+- [x] Include units, period, source names, import-run IDs, raw-record IDs/hashes, validation states, and location precision.
+- [x] Add pagination or strict limits to every list query.
+- [x] Add resolver tests for bounded results and raw-payload exclusion from the schema.
+- [x] Update `/ready` or connectivity only if new migration expectations require it.
 
 **Expected Evidence**
 
-- [ ] After fixture import, a GraphQL query can inspect imported observations and import-run counters.
-- [ ] Tests prove raw payload JSON is not exposed through default product queries.
+- [x] After fixture import, a GraphQL query can inspect imported observations and import-run counters.
+- [x] Tests prove raw payload JSON is not exposed through default product queries.
+
+**Completion Notes — 2026-07-02**
+
+- Added bounded GraphQL queries in `apps/api/src/lib.rs`:
+  `transactionObservations`, `importRuns`, `validationIssues`,
+  `dataSources`, and `transactionObservationProvenance`.
+- List queries default to 25 rows and clamp to 100 rows. Validation issue
+  filters are grouped in `ValidationIssueFilter`; UUID filters are validated
+  before SQL execution.
+- Observation results include period, unit-bearing numeric fields, ward/station
+  context, validation state, lineage IDs, and `locationPrecision`. Provenance
+  summaries expose raw-record ID, source position, payload hash, import-run
+  status, dataset retrieval metadata, artifact checksum, and data-source
+  identity, without exposing `payload_json`.
+- Added API schema/pagination tests and enabled SQLx `uuid` support for the API
+  release image path.
+- Verified with Docker-backed Rust checks, isolated Compose smoke, fixture
+  import into the isolated stack, and live GraphQL observation/import-run/source
+  plus provenance queries.
 
 ---
 
@@ -444,9 +463,8 @@ Close the phase as a teachable, repeatable workflow with clear evidence.
 
 ### Implementation Starting Point
 
-Slices 1, 2, 3, and 4 are complete. Resume with Slice 5 by exposing bounded
-GraphQL inspection for imported observations, import runs, validation issues,
-and provenance summaries.
+Slices 1, 2, 3, 4, and 5 are complete. Resume with Slice 6 by completing the
+documentation, regression-check, and UAT readiness pass for Phase 02.
 
 ### Resolved Questions
 
